@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { CostLineItem } from '../types';
+import { CapexAutocomplete } from './CapexAutocomplete';
 import '../styles/LineItems.css';
 
 interface LineItemsManagerProps {
@@ -192,13 +193,22 @@ export function LineItemsManager({
           </div>
 
           <div className="line-items-add-form" style={{ gridTemplateColumns: isCapexTab ? '2fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto' }}>
-            <input
-              type="text"
-              placeholder={`${isCapexTab ? 'CapEx' : 'OpEx'} item name (e.g., Solar panels, Maintenance)`}
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
-            />
+            {isCapexTab ? (
+              <CapexAutocomplete
+                value={newItemName}
+                onChange={setNewItemName}
+                placeholder="Type to search or enter custom name"
+                onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
+              />
+            ) : (
+              <input
+                type="text"
+                placeholder="OpEx item name (e.g., Maintenance, Insurance)"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
+              />
+            )}
             <input
               type="number"
               placeholder={isCapexTab ? 'Price per item' : 'Total amount'}
