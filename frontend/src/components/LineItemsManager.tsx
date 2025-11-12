@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CostLineItem } from '../types';
 import { CapexAutocomplete } from './CapexAutocomplete';
+import { OpexAutocomplete } from './OpexAutocomplete';
 import '../styles/LineItems.css';
 
 interface LineItemsManagerProps {
@@ -201,11 +202,10 @@ export function LineItemsManager({
                 onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
               />
             ) : (
-              <input
-                type="text"
-                placeholder="OpEx item name (e.g., Maintenance, Insurance)"
+              <OpexAutocomplete
                 value={newItemName}
-                onChange={(e) => setNewItemName(e.target.value)}
+                onChange={setNewItemName}
+                placeholder="Type to search or enter custom name"
                 onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
               />
             )}

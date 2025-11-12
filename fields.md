@@ -67,7 +67,41 @@ Bonds
 Contingencies
 
 # OPEX (Operating Expenditures)
-Insurance (annual)
+
+## Operations & Maintenance
+O&M contract (preventive & corrective maintenance)
+Panel cleaning
+Vegetation management
+Spare parts & consumables
+
+## Asset Management
+Asset management services
+Performance monitoring & reporting
+
+## Insurance
+Insurance (all-risk, liability, business interruption)
+
+## Land & Property
+Land lease
+Property taxes & fees
+
+## Monitoring & Control
+SCADA & monitoring systems
+Remote monitoring services
+
+## Security
+Security services & CCTV
+
+## Grid Connection
+Grid connection & network fees
+Metering services
+
+## Utilities & Services
+Site utilities (water, electricity, internet)
+
+## Compliance & Professional Services
+Environmental compliance & permits
+Professional fees (legal, audit, consulting)
 
 # OTHER
 Risks (analysis/planning item)
