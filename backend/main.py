@@ -88,6 +88,7 @@ class ProjectResultsResponse(BaseModel):
     assessment: Dict
     yearly_data: Optional[Dict] = None
     cost_items_breakdown: Optional[Dict] = None
+    audit_log: Optional[Dict] = None
 
 
 @app.get("/")
@@ -176,6 +177,16 @@ async def calculate_project(inputs: ProjectInputsRequest):
             report["yearly_data"] = yearly_data
         except Exception as e:
             print(f"ERROR generating yearly_data: {e}")
+            import traceback
+            traceback.print_exc()
+
+        # Add audit log
+        try:
+            audit_log = calculator.generate_calculation_audit_log()
+            print(f"DEBUG: Generated audit_log with {len(audit_log['calculation_steps'])} calculation steps")
+            report["audit_log"] = audit_log
+        except Exception as e:
+            print(f"ERROR generating audit_log: {e}")
             import traceback
             traceback.print_exc()
 

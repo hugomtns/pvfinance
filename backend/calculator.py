@@ -427,10 +427,397 @@ class SolarFinanceCalculator:
             "cumulative_fcf_to_equity": cumulative_fcf_list
         }
 
+    def generate_calculation_audit_log(self) -> Dict:
+        """
+        Generate detailed audit log showing all calculation steps with formulas and values.
+        Returns a structured log for transparency and verification of all calculations.
+        """
+        # Calculate all intermediates first
+        capacity_factor = self.calc_Capacity_Factor()
+        total_capex = self.calc_Total_CapEx()
+        max_debt_dscr = self.calc_Max_Debt_by_DSCR()
+        max_debt_gearing = self.calc_Max_Debt_by_Gearing()
+        final_debt = self.calc_Final_Debt()
+        equity = self.calc_Equity()
+        annual_debt_service = self.calc_Annual_Debt_Service()
+        pv_cfads = self.calc_PV_of_CFADS()
+
+        # Year 1 values for examples
+        year1_energy = self.calc_Energy_year_t(1)
+        year1_revenue = self.calc_Revenue_year_t(1)
+        year1_om = self.calc_OM_year_t(1)
+        year1_ebitda = self.calc_EBITDA_year_t(1)
+        year1_cfads = self.calc_CFADS_year_t(1)
+        year1_fcf = self.calc_FCF_to_Equity_year_t(1)
+        year1_dscr = self.calc_DSCR_year_t(1)
+
+        # Key metrics
+        project_irr = self.calc_Project_IRR()
+        equity_irr = self.calc_Equity_IRR()
+        lcoe = self.calc_LCOE()
+        min_dscr = self.calc_Minimum_DSCR()
+        avg_dscr = self.calc_Average_DSCR()
+        project_npv = self.calc_Project_NPV()
+        npv_costs = self.calc_NPV_of_Costs()
+        npv_energy = self.calc_NPV_of_Energy()
+
+        # Determine binding constraint
+        binding_constraint = "DSCR" if max_debt_dscr < max_debt_gearing else "Gearing"
+
+        audit_log = {
+            "formulas_reference": [
+                {
+                    "category": "Intermediate Calculations",
+                    "formulas": [
+                        "Capacity Factor = P50 Year 0 Yield / (Capacity × 8760)",
+                        "Total CapEx = Capacity × CapEx per MW",
+                        "Energy (year t) = P50 Year 0 Yield × (1 - Degradation Rate)^(t-1)",
+                        "Revenue (year t) = Energy × PPA Price × (1 + PPA Escalation)^(t-1)",
+                        "O&M (year t) = Capacity × O&M Cost per MW × (1 + O&M Escalation)^(t-1)",
+                        "EBITDA (year t) = Revenue - O&M",
+                        "CFADS (year t) = EBITDA × (1 - Tax Rate)",
+                        "PV of CFADS = Σ [CFADS(t) / (1 + Interest Rate)^t] for t=1 to Debt Tenor",
+                        "Max Debt by DSCR = PV of CFADS / Target DSCR",
+                        "Max Debt by Gearing = Total CapEx × Gearing Ratio",
+                        "Final Debt = MIN(Max Debt by DSCR, Max Debt by Gearing)",
+                        "Equity = Total CapEx - Final Debt",
+                        "Annual Debt Service = PMT(Interest Rate, Debt Tenor, Final Debt)",
+                        "FCF to Equity (year t) = CFADS - Debt Service (if t ≤ Tenor), else CFADS",
+                        "DSCR (year t) = CFADS / Annual Debt Service",
+                        "NPV of Costs = Total CapEx + Σ [O&M(t) / (1 + Discount Rate)^t]",
+                        "NPV of Energy = Σ [Energy(t) / (1 + Discount Rate)^t]"
+                    ]
+                },
+                {
+                    "category": "Key Output Metrics",
+                    "formulas": [
+                        "Project IRR = Rate where NPV([-Total CapEx, CFADS₁, CFADS₂, ..., CFADSₙ]) = 0",
+                        "Equity IRR = Rate where NPV([-Equity, FCF₁, FCF₂, ..., FCFₙ]) = 0",
+                        "LCOE = NPV of Costs / NPV of Energy",
+                        "Minimum DSCR = MIN(DSCR(t)) for t=1 to Debt Tenor",
+                        "Average DSCR = AVERAGE(DSCR(t)) for t=1 to Debt Tenor",
+                        "Project NPV = -Total CapEx + Σ [CFADS(t) / (1 + Discount Rate)^t]"
+                    ]
+                }
+            ],
+            "calculation_steps": [
+                {
+                    "step_number": 1,
+                    "name": "Capacity Factor",
+                    "formula": "P50 Year 0 Yield / (Capacity × 8760)",
+                    "inputs": {
+                        "P50 Year 0 Yield": self.inputs.P50_Year_0_Yield,
+                        "Capacity": self.inputs.Capacity
+                    },
+                    "calculation": f"{self.inputs.P50_Year_0_Yield:,.0f} / ({self.inputs.Capacity:,.0f} × 8,760)",
+                    "result": capacity_factor,
+                    "unit": "ratio"
+                },
+                {
+                    "step_number": 2,
+                    "name": "Total CapEx",
+                    "formula": "Capacity × CapEx per MW",
+                    "inputs": {
+                        "Capacity": self.inputs.Capacity,
+                        "CapEx per MW": self.inputs.CapEx_per_MW
+                    },
+                    "calculation": f"{self.inputs.Capacity:,.0f} × {self.inputs.CapEx_per_MW:,.0f}",
+                    "result": total_capex,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 3,
+                    "name": "Energy Production Year 1",
+                    "formula": "P50 Year 0 Yield × (1 - Degradation Rate)^(year-1)",
+                    "inputs": {
+                        "P50 Year 0 Yield": self.inputs.P50_Year_0_Yield,
+                        "Degradation Rate": self.inputs.Degradation_Rate,
+                        "Year": 1
+                    },
+                    "calculation": f"{self.inputs.P50_Year_0_Yield:,.0f} × (1 - {self.inputs.Degradation_Rate})^0",
+                    "result": year1_energy,
+                    "unit": "MWh"
+                },
+                {
+                    "step_number": 4,
+                    "name": "Revenue Year 1",
+                    "formula": "Energy × PPA Price × (1 + PPA Escalation)^(year-1)",
+                    "inputs": {
+                        "Energy": year1_energy,
+                        "PPA Price": self.inputs.PPA_Price,
+                        "PPA Escalation": self.inputs.PPA_Escalation,
+                        "Year": 1
+                    },
+                    "calculation": f"{year1_energy:,.0f} × {self.inputs.PPA_Price:,.2f} × (1 + {self.inputs.PPA_Escalation})^0",
+                    "result": year1_revenue,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 5,
+                    "name": "O&M Costs Year 1",
+                    "formula": "Capacity × O&M Cost per MW × (1 + O&M Escalation)^(year-1)",
+                    "inputs": {
+                        "Capacity": self.inputs.Capacity,
+                        "O&M Cost per MW": self.inputs.OM_Cost_per_MW_year,
+                        "O&M Escalation": self.inputs.OM_Escalation,
+                        "Year": 1
+                    },
+                    "calculation": f"{self.inputs.Capacity:,.0f} × {self.inputs.OM_Cost_per_MW_year:,.0f} × (1 + {self.inputs.OM_Escalation})^0",
+                    "result": year1_om,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 6,
+                    "name": "EBITDA Year 1",
+                    "formula": "Revenue - O&M",
+                    "inputs": {
+                        "Revenue": year1_revenue,
+                        "O&M": year1_om
+                    },
+                    "calculation": f"{year1_revenue:,.0f} - {year1_om:,.0f}",
+                    "result": year1_ebitda,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 7,
+                    "name": "CFADS Year 1",
+                    "formula": "EBITDA × (1 - Tax Rate)",
+                    "inputs": {
+                        "EBITDA": year1_ebitda,
+                        "Tax Rate": self.inputs.Tax_Rate
+                    },
+                    "calculation": f"{year1_ebitda:,.0f} × (1 - {self.inputs.Tax_Rate})",
+                    "result": year1_cfads,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 8,
+                    "name": "PV of CFADS (Debt Tenor)",
+                    "formula": "Σ [CFADS(t) / (1 + Interest Rate)^t] for t=1 to Debt Tenor",
+                    "inputs": {
+                        "Interest Rate": self.inputs.Interest_Rate,
+                        "Debt Tenor": self.inputs.Debt_Tenor
+                    },
+                    "calculation": f"Sum of discounted CFADS over {self.inputs.Debt_Tenor} years",
+                    "result": pv_cfads,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 9,
+                    "name": "Max Debt by DSCR",
+                    "formula": "PV of CFADS / Target DSCR",
+                    "inputs": {
+                        "PV of CFADS": pv_cfads,
+                        "Target DSCR": self.inputs.Target_DSCR
+                    },
+                    "calculation": f"{pv_cfads:,.0f} / {self.inputs.Target_DSCR}",
+                    "result": max_debt_dscr,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 10,
+                    "name": "Max Debt by Gearing",
+                    "formula": "Total CapEx × Gearing Ratio",
+                    "inputs": {
+                        "Total CapEx": total_capex,
+                        "Gearing Ratio": self.inputs.Gearing_Ratio
+                    },
+                    "calculation": f"{total_capex:,.0f} × {self.inputs.Gearing_Ratio}",
+                    "result": max_debt_gearing,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 11,
+                    "name": "Final Debt",
+                    "formula": "MIN(Max Debt by DSCR, Max Debt by Gearing)",
+                    "inputs": {
+                        "Max Debt by DSCR": max_debt_dscr,
+                        "Max Debt by Gearing": max_debt_gearing
+                    },
+                    "calculation": f"MIN({max_debt_dscr:,.0f}, {max_debt_gearing:,.0f})",
+                    "result": final_debt,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 12,
+                    "name": "Equity",
+                    "formula": "Total CapEx - Final Debt",
+                    "inputs": {
+                        "Total CapEx": total_capex,
+                        "Final Debt": final_debt
+                    },
+                    "calculation": f"{total_capex:,.0f} - {final_debt:,.0f}",
+                    "result": equity,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 13,
+                    "name": "Annual Debt Service",
+                    "formula": "PMT(Interest Rate, Debt Tenor, Final Debt)",
+                    "inputs": {
+                        "Interest Rate": self.inputs.Interest_Rate,
+                        "Debt Tenor": self.inputs.Debt_Tenor,
+                        "Final Debt": final_debt
+                    },
+                    "calculation": f"PMT({self.inputs.Interest_Rate}, {self.inputs.Debt_Tenor}, {final_debt:,.0f})",
+                    "result": annual_debt_service,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 14,
+                    "name": "FCF to Equity Year 1",
+                    "formula": "CFADS - Debt Service",
+                    "inputs": {
+                        "CFADS": year1_cfads,
+                        "Annual Debt Service": annual_debt_service
+                    },
+                    "calculation": f"{year1_cfads:,.0f} - {annual_debt_service:,.0f}",
+                    "result": year1_fcf,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 15,
+                    "name": "DSCR Year 1",
+                    "formula": "CFADS / Annual Debt Service",
+                    "inputs": {
+                        "CFADS": year1_cfads,
+                        "Annual Debt Service": annual_debt_service
+                    },
+                    "calculation": f"{year1_cfads:,.0f} / {annual_debt_service:,.0f}",
+                    "result": year1_dscr if year1_dscr else 0,
+                    "unit": "x"
+                },
+                {
+                    "step_number": 16,
+                    "name": "NPV of Costs",
+                    "formula": "Total CapEx + Σ [O&M(t) / (1 + Discount Rate)^t]",
+                    "inputs": {
+                        "Total CapEx": total_capex,
+                        "Discount Rate": self.inputs.Discount_Rate,
+                        "Project Lifetime": self.inputs.Project_Lifetime
+                    },
+                    "calculation": f"{total_capex:,.0f} + Sum of discounted O&M over {self.inputs.Project_Lifetime} years",
+                    "result": npv_costs,
+                    "unit": "€"
+                },
+                {
+                    "step_number": 17,
+                    "name": "NPV of Energy",
+                    "formula": "Σ [Energy(t) / (1 + Discount Rate)^t]",
+                    "inputs": {
+                        "Discount Rate": self.inputs.Discount_Rate,
+                        "Project Lifetime": self.inputs.Project_Lifetime
+                    },
+                    "calculation": f"Sum of discounted energy over {self.inputs.Project_Lifetime} years",
+                    "result": npv_energy,
+                    "unit": "MWh"
+                },
+                {
+                    "step_number": 18,
+                    "name": "Project IRR",
+                    "formula": "Rate where NPV of project cash flows = 0",
+                    "inputs": {
+                        "Initial Investment": -total_capex,
+                        "Annual CFADS": "Years 1 to Project Lifetime"
+                    },
+                    "calculation": f"IRR([-{total_capex:,.0f}, CFADS₁, ..., CFADS₂₅])",
+                    "result": project_irr,
+                    "unit": "%"
+                },
+                {
+                    "step_number": 19,
+                    "name": "Equity IRR",
+                    "formula": "Rate where NPV of equity cash flows = 0",
+                    "inputs": {
+                        "Equity Investment": -equity,
+                        "Annual FCF": "Years 1 to Project Lifetime"
+                    },
+                    "calculation": f"IRR([-{equity:,.0f}, FCF₁, ..., FCF₂₅])",
+                    "result": equity_irr,
+                    "unit": "%"
+                },
+                {
+                    "step_number": 20,
+                    "name": "LCOE",
+                    "formula": "NPV of Costs / NPV of Energy",
+                    "inputs": {
+                        "NPV of Costs": npv_costs,
+                        "NPV of Energy": npv_energy
+                    },
+                    "calculation": f"{npv_costs:,.0f} / {npv_energy:,.0f}",
+                    "result": lcoe,
+                    "unit": "€/MWh"
+                },
+                {
+                    "step_number": 21,
+                    "name": "Minimum DSCR",
+                    "formula": "MIN(DSCR(t)) for t=1 to Debt Tenor",
+                    "inputs": {
+                        "Debt Tenor": self.inputs.Debt_Tenor
+                    },
+                    "calculation": f"Minimum DSCR over {self.inputs.Debt_Tenor} years",
+                    "result": min_dscr if min_dscr else 0,
+                    "unit": "x"
+                },
+                {
+                    "step_number": 22,
+                    "name": "Average DSCR",
+                    "formula": "AVERAGE(DSCR(t)) for t=1 to Debt Tenor",
+                    "inputs": {
+                        "Debt Tenor": self.inputs.Debt_Tenor
+                    },
+                    "calculation": f"Average DSCR over {self.inputs.Debt_Tenor} years",
+                    "result": avg_dscr if avg_dscr else 0,
+                    "unit": "x"
+                },
+                {
+                    "step_number": 23,
+                    "name": "Project NPV",
+                    "formula": "-Total CapEx + Σ [CFADS(t) / (1 + Discount Rate)^t]",
+                    "inputs": {
+                        "Total CapEx": total_capex,
+                        "Discount Rate": self.inputs.Discount_Rate,
+                        "Project Lifetime": self.inputs.Project_Lifetime
+                    },
+                    "calculation": f"-{total_capex:,.0f} + Sum of discounted CFADS over {self.inputs.Project_Lifetime} years",
+                    "result": project_npv,
+                    "unit": "€"
+                }
+            ],
+            "binding_constraint": {
+                "debt_sizing": {
+                    "max_by_dscr": max_debt_dscr,
+                    "max_by_gearing": max_debt_gearing,
+                    "chosen": final_debt,
+                    "constraint": binding_constraint,
+                    "reason": f"{'DSCR limits the debt amount to maintain the target coverage ratio of ' + str(self.inputs.Target_DSCR) + 'x' if binding_constraint == 'DSCR' else 'Gearing ratio limits debt to ' + str(int(self.inputs.Gearing_Ratio * 100)) + '% of total CapEx'}"
+                }
+            },
+            "key_assumptions": {
+                "Capacity (MW)": self.inputs.Capacity,
+                "P50 Year 0 Yield (MWh)": self.inputs.P50_Year_0_Yield,
+                "CapEx per MW (€)": self.inputs.CapEx_per_MW,
+                "PPA Price (€/MWh)": self.inputs.PPA_Price,
+                "O&M Cost per MW per year (€)": self.inputs.OM_Cost_per_MW_year,
+                "Degradation Rate": self.inputs.Degradation_Rate,
+                "PPA Escalation": self.inputs.PPA_Escalation,
+                "O&M Escalation": self.inputs.OM_Escalation,
+                "Gearing Ratio": self.inputs.Gearing_Ratio,
+                "Interest Rate": self.inputs.Interest_Rate,
+                "Debt Tenor (years)": self.inputs.Debt_Tenor,
+                "Target DSCR": self.inputs.Target_DSCR,
+                "Project Lifetime (years)": self.inputs.Project_Lifetime,
+                "Tax Rate": self.inputs.Tax_Rate,
+                "Discount Rate": self.inputs.Discount_Rate
+            }
+        }
+
+        return audit_log
+
     def assess_project(self, project_irr: float, equity_irr: float, min_dscr: float) -> Dict[str, str]:
         """Simple go/no-go assessment"""
         assessments = {}
-        
+
         # Project IRR
         if project_irr >= 0.08:
             assessments['project_irr'] = "✅ GOOD - Exceeds 8% threshold"
@@ -438,7 +825,7 @@ class SolarFinanceCalculator:
             assessments['project_irr'] = "⚠️ MARGINAL - Between 6-8%"
         else:
             assessments['project_irr'] = "❌ POOR - Below 6%"
-        
+
         # Equity IRR
         if equity_irr >= 0.12:
             assessments['equity_irr'] = "✅ GOOD - Exceeds 12% threshold"
@@ -446,7 +833,7 @@ class SolarFinanceCalculator:
             assessments['equity_irr'] = "⚠️ MARGINAL - Between 9-12%"
         else:
             assessments['equity_irr'] = "❌ POOR - Below 9%"
-        
+
         # DSCR
         if min_dscr >= 1.30:
             assessments['dscr'] = "✅ GOOD - Exceeds 1.30x threshold"
@@ -454,7 +841,7 @@ class SolarFinanceCalculator:
             assessments['dscr'] = "⚠️ MARGINAL - Between 1.20-1.30x"
         else:
             assessments['dscr'] = "❌ POOR - Below 1.20x"
-        
+
         # Overall
         if all('✅' in v for v in assessments.values()):
             assessments['overall'] = "✅ RECOMMEND - Proceed to detailed financing"
@@ -462,7 +849,7 @@ class SolarFinanceCalculator:
             assessments['overall'] = "⚠️ REVIEW - May be viable with optimization"
         else:
             assessments['overall'] = "❌ DO NOT PROCEED - Economics not viable"
-        
+
         return assessments
 
 

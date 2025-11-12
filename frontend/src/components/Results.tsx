@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import type { ProjectResults } from '../types';
 import { YearlyDataTable } from './YearlyDataTable';
+import { AuditLogView } from './AuditLogView';
 import '../styles/Results.css';
 
 interface ResultsProps {
   results: ProjectResults;
 }
+
+type TabType = 'summary' | 'calculations';
 
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('en-EU', {
@@ -41,6 +44,7 @@ export function Results({ results }: ResultsProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [showYearlyTable, setShowYearlyTable] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('summary');
 
   // Debug: Check if yearly_data exists
   console.log('Results received, yearly_data exists:', !!yearly_data);
@@ -104,6 +108,27 @@ export function Results({ results }: ResultsProps) {
           {exportError}
         </div>
       )}
+
+      {/* Tab Navigation */}
+      <div className="tabs-navigation">
+        <button
+          className={`tab-button ${activeTab === 'summary' ? 'active' : ''}`}
+          onClick={() => setActiveTab('summary')}
+        >
+          Summary
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'calculations' ? 'active' : ''}`}
+          onClick={() => setActiveTab('calculations')}
+          disabled={!results.audit_log}
+        >
+          Detailed Calculations
+        </button>
+      </div>
+
+      {/* Summary Tab */}
+      {activeTab === 'summary' && (
+        <div className="tab-content"  >
 
       {/* Project Summary */}
       <div className="results-section">
@@ -192,7 +217,7 @@ export function Results({ results }: ResultsProps) {
             <span className="result-value">{formatCurrency(financing_structure.equity)}</span>
           </div>
           <div className="result-item">
-            <span className="result-label">Actual Gearing</span>
+            <span className="result-label" title="Gearing represents the ratio of debt to total capital (debt + equity). It shows how much of the project is financed with debt versus equity.">Actual Gearing</span>
             <span className="result-value">{formatPercent(financing_structure.actual_gearing)}</span>
           </div>
           <div className="result-item">
@@ -300,6 +325,15 @@ export function Results({ results }: ResultsProps) {
           </div>
         )}
       </div>
+        </div>
+      )}
+
+      {/* Detailed Calculations Tab */}
+      {activeTab === 'calculations' && results.audit_log && (
+        <div className="tab-content">
+          <AuditLogView data={results.audit_log} />
+        </div>
+      )}
     </div>
   );
 }

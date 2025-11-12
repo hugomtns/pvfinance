@@ -107,6 +107,36 @@ export interface YearlyData {
   cumulative_fcf_to_equity: number[];
 }
 
+export interface CalculationStep {
+  step_number: number;
+  name: string;
+  formula: string;
+  inputs: Record<string, number | string>;
+  calculation: string;
+  result: number;
+  unit: string;
+}
+
+export interface FormulaReference {
+  category: string;
+  formulas: string[];
+}
+
+export interface AuditLog {
+  formulas_reference: FormulaReference[];
+  calculation_steps: CalculationStep[];
+  binding_constraint: {
+    debt_sizing: {
+      max_by_dscr: number;
+      max_by_gearing: number;
+      chosen: number;
+      constraint: string;
+      reason: string;
+    };
+  };
+  key_assumptions: Record<string, number>;
+}
+
 export interface ProjectResults {
   project_summary: ProjectSummary;
   financing_structure: FinancingStructure;
@@ -115,6 +145,7 @@ export interface ProjectResults {
   assessment: Assessment;
   cost_items_breakdown?: CostItemsBreakdown;
   yearly_data?: YearlyData;
+  audit_log?: AuditLog;
 }
 
 // Default values for 300 MW utility-scale ground mount project
