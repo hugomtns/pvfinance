@@ -26,6 +26,14 @@ export function LineItemsManager({
   const [newItemAmount, setNewItemAmount] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
 
+  const handleTabChange = (tab: 'capex' | 'opex') => {
+    setActiveTab(tab);
+    // Clear form fields when switching tabs
+    setNewItemName('');
+    setNewItemAmount('');
+    setNewItemQuantity('');
+  };
+
   const isCapexTab = activeTab === 'capex';
   const currentItems = isCapexTab ? capexItems : opexItems;
   const setCurrentItems = isCapexTab ? onCapexItemsChange : onOpexItemsChange;
@@ -114,13 +122,13 @@ export function LineItemsManager({
           <div className="line-items-tabs">
             <button
               className={`tab-button ${activeTab === 'capex' ? 'active' : ''}`}
-              onClick={() => setActiveTab('capex')}
+              onClick={() => handleTabChange('capex')}
             >
               CapEx Items ({capexItems.length})
             </button>
             <button
               className={`tab-button ${activeTab === 'opex' ? 'active' : ''}`}
-              onClick={() => setActiveTab('opex')}
+              onClick={() => handleTabChange('opex')}
             >
               OpEx Items ({opexItems.length})
             </button>
