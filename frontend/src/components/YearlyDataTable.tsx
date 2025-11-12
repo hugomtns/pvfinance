@@ -31,11 +31,11 @@ export function YearlyDataTable({ data }: YearlyDataTableProps) {
             <th title="Megawatt-hour: A unit of energy (production), equal to 1,000 kilowatt-hours (kWh).">Energy (MWh)</th>
             <th>Revenue (€)</th>
             <th title="Operations and Maintenance: The ongoing activities required to keep the solar farm running efficiently.">O&M Costs (€)</th>
-            <th>EBITDA (€)</th>
-            <th>CFADS (€)</th>
+            <th title="EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization): Operating profit before financing costs and accounting adjustments. Calculated as Revenue - O&M Costs.">EBITDA (€)</th>
+            <th title="CFADS (Cash Flow Available for Debt Service): Operating cash flow after taxes but before debt service. This is the cash available to pay lenders and equity investors. Calculated as EBITDA - Taxes.">CFADS (€)</th>
             <th>Debt Service (€)</th>
             <th title="Debt Service Coverage Ratio: A key metric used by lenders to determine the project's ability to repay its loan.">DSCR</th>
-            <th>FCF to Equity (€)</th>
+            <th title="FCF to Equity (Free Cash Flow to Equity): The cash available to equity investors after all operating costs, taxes, and debt service are paid. Calculated as CFADS - Debt Service.">FCF to Equity (€)</th>
             <th>Cumulative FCF (€)</th>
           </tr>
         </thead>

@@ -247,11 +247,11 @@ export function Results({ results }: ResultsProps) {
             <span className="result-value">{formatCurrency(first_year_operations.om_costs)}</span>
           </div>
           <div className="result-item">
-            <span className="result-label">EBITDA</span>
+            <span className="result-label" title="EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization): Operating profit before financing costs and accounting adjustments. Calculated as Revenue - O&M Costs.">EBITDA</span>
             <span className="result-value">{formatCurrency(first_year_operations.ebitda)}</span>
           </div>
           <div className="result-item">
-            <span className="result-label">CFADS</span>
+            <span className="result-label" title="CFADS (Cash Flow Available for Debt Service): Operating cash flow after taxes but before debt service. This is the cash available to pay lenders and equity investors. Calculated as EBITDA - Taxes.">CFADS</span>
             <span className="result-value">{formatCurrency(first_year_operations.cfads)}</span>
           </div>
         </div>

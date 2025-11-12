@@ -173,7 +173,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
         <h3>Economic Parameters</h3>
         <div className="form-grid">
           <div className="form-field">
-            <label>
+            <label title="PPA Escalation: The annual percentage increase in the PPA price over the contract term. For example, 0.01 (1%) means the price increases by 1% each year to account for inflation.">
               PPA Escalation <span className="label-hint">(decimal/year, e.g., 0.01)</span>
             </label>
             <input
@@ -207,7 +207,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
         <h3>Financing Parameters</h3>
         <div className="form-grid">
           <div className="form-field">
-            <label>
+            <label title="Gearing Ratio: The proportion of debt financing relative to total project cost. For example, 0.75 (75%) means the project is financed with 75% debt and 25% equity. Higher gearing increases equity returns but also risk.">
               Gearing Ratio <span className="label-hint">(decimal, e.g., 0.75)</span>
             </label>
             <input
@@ -235,7 +235,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
           </div>
 
           <div className="form-field">
-            <label>
+            <label title="Debt Tenor: The length of time (in years) over which the debt must be repaid. Longer tenors reduce annual debt service but may require higher interest rates. Typical solar project debt tenors are 15-18 years.">
               Debt Tenor <span className="label-hint">(years)</span>
             </label>
             <input
