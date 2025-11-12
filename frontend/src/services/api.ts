@@ -48,6 +48,11 @@ export const api = {
       );
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('API Response received:', {
+      hasYearlyData: !!data.yearly_data,
+      keys: Object.keys(data)
+    });
+    return data;
   },
 };
