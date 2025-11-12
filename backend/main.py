@@ -86,6 +86,8 @@ class ProjectResultsResponse(BaseModel):
     key_metrics: Dict
     first_year_operations: Dict
     assessment: Dict
+    yearly_data: Optional[Dict] = None
+    cost_items_breakdown: Optional[Dict] = None
 
 
 @app.get("/")
