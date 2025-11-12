@@ -215,7 +215,28 @@ class PDFReportGenerator:
                         format_currency(item.get('amount', 0))
                     ])
                 opex_data.append(['Total OpEx (Year 1)', format_currency(cost_breakdown.get('total_opex_year_1', 0))])
-                elements.append(self._create_table(opex_data, highlight_last_row=True))
+
+                # Create table with same total width as CapEx table (6.5 inches)
+                opex_table = Table(opex_data, colWidths=[4 * inch, 2.5 * inch])
+                style = [
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e5e7eb')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#111827')),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d1d5db')),
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 10),
+                    ('TOPPADDING', (0, 1), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f3f4f6')),
+                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ]
+                opex_table.setStyle(TableStyle(style))
+                elements.append(opex_table)
                 elements.append(Spacer(1, 0.2 * inch))
 
         # Yearly Financial Projections (if available)
