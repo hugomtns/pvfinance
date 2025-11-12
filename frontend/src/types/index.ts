@@ -113,7 +113,7 @@ export interface ProjectResults {
   first_year_operations: FirstYearOperations;
   assessment: Assessment;
   cost_items_breakdown?: CostItemsBreakdown;
-  yearly_data: YearlyData;
+  yearly_data?: YearlyData;
 }
 
 // Default values

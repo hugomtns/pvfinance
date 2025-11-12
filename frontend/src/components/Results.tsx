@@ -250,50 +250,54 @@ export function Results({ results }: ResultsProps) {
       </div>
 
       {/* Yearly Projections Table */}
-      <div className="results-section collapsible-section">
-        <div
-          className="collapsible-header"
-          onClick={() => setShowYearlyTable(!showYearlyTable)}
-        >
-          <h3>Yearly Financial Projections</h3>
-          <div className="collapsible-toggle">
-            <span>{showYearlyTable ? 'Hide' : 'Show'} Table</span>
-            <span className={`collapsible-toggle-icon ${showYearlyTable ? 'expanded' : ''}`}>
-              ▼
-            </span>
+      {results.yearly_data && (
+        <div className="results-section collapsible-section">
+          <div
+            className="collapsible-header"
+            onClick={() => setShowYearlyTable(!showYearlyTable)}
+          >
+            <h3>Yearly Financial Projections</h3>
+            <div className="collapsible-toggle">
+              <span>{showYearlyTable ? 'Hide' : 'Show'} Table</span>
+              <span className={`collapsible-toggle-icon ${showYearlyTable ? 'expanded' : ''}`}>
+                ▼
+              </span>
+            </div>
+          </div>
+          <div className={`collapsible-content ${showYearlyTable ? 'expanded' : ''}`}>
+            {showYearlyTable && (
+              <div className="collapsible-content-inner">
+                <YearlyDataTable data={results.yearly_data} />
+              </div>
+            )}
           </div>
         </div>
-        <div className={`collapsible-content ${showYearlyTable ? 'expanded' : ''}`}>
-          {showYearlyTable && (
-            <div className="collapsible-content-inner">
-              <YearlyDataTable data={results.yearly_data} />
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Visual Analysis Charts */}
-      <div className="results-section collapsible-section">
-        <div
-          className="collapsible-header"
-          onClick={() => setShowYearlyCharts(!showYearlyCharts)}
-        >
-          <h3>Visual Analysis</h3>
-          <div className="collapsible-toggle">
-            <span>{showYearlyCharts ? 'Hide' : 'Show'} Charts</span>
-            <span className={`collapsible-toggle-icon ${showYearlyCharts ? 'expanded' : ''}`}>
-              ▼
-            </span>
+      {results.yearly_data && (
+        <div className="results-section collapsible-section">
+          <div
+            className="collapsible-header"
+            onClick={() => setShowYearlyCharts(!showYearlyCharts)}
+          >
+            <h3>Visual Analysis</h3>
+            <div className="collapsible-toggle">
+              <span>{showYearlyCharts ? 'Hide' : 'Show'} Charts</span>
+              <span className={`collapsible-toggle-icon ${showYearlyCharts ? 'expanded' : ''}`}>
+                ▼
+              </span>
+            </div>
+          </div>
+          <div className={`collapsible-content ${showYearlyCharts ? 'expanded' : ''}`}>
+            {showYearlyCharts && (
+              <div className="collapsible-content-inner">
+                <YearlyCharts data={results.yearly_data} />
+              </div>
+            )}
           </div>
         </div>
-        <div className={`collapsible-content ${showYearlyCharts ? 'expanded' : ''}`}>
-          {showYearlyCharts && (
-            <div className="collapsible-content-inner">
-              <YearlyCharts data={results.yearly_data} />
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Assessment */}
       <div className="results-section">
