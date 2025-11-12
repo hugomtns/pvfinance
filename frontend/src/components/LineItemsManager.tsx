@@ -142,6 +142,15 @@ export function LineItemsManager({
             )}
           </div>
 
+          <div style={{ marginTop: 'var(--spacing-lg)', marginBottom: 'var(--spacing-sm)' }}>
+            <div className="line-item-header" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <div>Item Name</div>
+              <div>Amount (€)</div>
+              <div>{isCapexTab ? 'Escalation (N/A)' : 'Escalation (%/year)'}</div>
+              <div>Action</div>
+            </div>
+          </div>
+
           <div className="line-items-add-form">
             <input
               type="text"
@@ -161,7 +170,7 @@ export function LineItemsManager({
             />
             <input
               type="number"
-              placeholder="Escalation"
+              placeholder={isCapexTab ? 'N/A' : '0.01'}
               value={newItemEscalation}
               onChange={(e) => setNewItemEscalation(e.target.value)}
               min="-0.1"
@@ -170,6 +179,7 @@ export function LineItemsManager({
               disabled={isCapexTab}
               className={isCapexTab ? 'opex-only' : ''}
               onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
+              title={isCapexTab ? 'CapEx items do not escalate (one-time cost)' : 'Annual escalation rate (e.g., 0.01 = 1%)'}
             />
             <button
               className="line-items-add-button"
