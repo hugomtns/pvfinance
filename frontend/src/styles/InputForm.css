@@ -44,6 +44,13 @@
   color: var(--color-text);
 }
 
+.form-field label[title] {
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--color-text-secondary);
+  text-underline-offset: 3px;
+}
+
 .form-field .label-hint {
   font-size: 0.75rem;
   color: var(--color-text-secondary);

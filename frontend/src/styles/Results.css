@@ -53,6 +53,13 @@
   font-weight: 400;
 }
 
+.result-label[title] {
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--color-text-secondary);
+  text-underline-offset: 3px;
+}
+
 .result-value {
   font-size: 1rem;
   color: var(--color-text);
