@@ -36,6 +36,9 @@ class CostLineItem(BaseModel):
     amount: float = Field(..., gt=0, description="Total cost amount in €")
     is_capex: bool = Field(..., description="True for CapEx, False for OpEx")
     escalation_rate: float = Field(0.0, ge=-0.1, le=0.2, description="Annual escalation rate for OpEx (decimal)")
+    # CapEx-specific fields
+    unit_price: Optional[float] = Field(None, description="Price per item (CapEx only)")
+    quantity: Optional[float] = Field(None, description="Number of items (CapEx only)")
 
 
 # Request model

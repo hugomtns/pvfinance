@@ -22,6 +22,7 @@ export function LineItemsManager({
   const [activeTab, setActiveTab] = useState<'capex' | 'opex'>('capex');
   const [newItemName, setNewItemName] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
+  const [newItemQuantity, setNewItemQuantity] = useState('');
   const [newItemEscalation, setNewItemEscalation] = useState('0.01');
 
   const isCapexTab = activeTab === 'capex';
@@ -32,23 +33,51 @@ export function LineItemsManager({
   const totalOpex = opexItems.reduce((sum, item) => sum + item.amount, 0);
 
   const handleAddItem = () => {
-    const amount = parseFloat(newItemAmount);
-    if (!newItemName.trim() || isNaN(amount) || amount <= 0) {
+    if (!newItemName.trim()) {
       return;
     }
 
-    const newItem: CostLineItem = {
-      name: newItemName.trim(),
-      amount,
-      is_capex: isCapexTab,
-      escalation_rate: isCapexTab ? 0 : parseFloat(newItemEscalation),
-    };
+    let newItem: CostLineItem;
+
+    if (isCapexTab) {
+      // CapEx: Calculate amount from unit_price × quantity
+      const unitPrice = parseFloat(newItemAmount);
+      const quantity = parseFloat(newItemQuantity);
+
+      if (isNaN(unitPrice) || unitPrice <= 0 || isNaN(quantity) || quantity <= 0) {
+        return;
+      }
+
+      newItem = {
+        name: newItemName.trim(),
+        amount: unitPrice * quantity,
+        is_capex: true,
+        escalation_rate: 0,
+        unit_price: unitPrice,
+        quantity: quantity,
+      };
+    } else {
+      // OpEx: Use amount directly
+      const amount = parseFloat(newItemAmount);
+
+      if (isNaN(amount) || amount <= 0) {
+        return;
+      }
+
+      newItem = {
+        name: newItemName.trim(),
+        amount,
+        is_capex: false,
+        escalation_rate: parseFloat(newItemEscalation),
+      };
+    }
 
     setCurrentItems([...currentItems, newItem]);
 
     // Reset form
     setNewItemName('');
     setNewItemAmount('');
+    setNewItemQuantity('');
     setNewItemEscalation('0.01');
   };
 
@@ -108,23 +137,43 @@ export function LineItemsManager({
               <>
                 <div className="line-item-header">
                   <div>Item Name</div>
-                  <div>Amount (€)</div>
-                  <div>{isCapexTab ? '' : 'Escalation'}</div>
+                  {isCapexTab ? (
+                    <>
+                      <div>Price/Item (€)</div>
+                      <div>Quantity</div>
+                      <div>Total (€)</div>
+                    </>
+                  ) : (
+                    <>
+                      <div>Amount (€)</div>
+                      <div>Escalation</div>
+                    </>
+                  )}
                   <div></div>
                 </div>
                 {currentItems.map((item, index) => (
-                  <div key={index} className="line-item">
+                  <div key={index} className="line-item" style={{ gridTemplateColumns: isCapexTab ? '2fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr 1fr auto' }}>
                     <div className="line-item-name">{item.name}</div>
-                    <div className="line-item-amount">{formatCurrency(item.amount)}</div>
-                    <div className="line-item-escalation">
-                      {!isCapexTab && item.escalation_rate !== 0 ? (
-                        <span className="escalation-badge">
-                          {formatPercent(item.escalation_rate)}
-                        </span>
-                      ) : (
-                        <span>—</span>
-                      )}
-                    </div>
+                    {isCapexTab ? (
+                      <>
+                        <div className="line-item-amount">{formatCurrency(item.unit_price || 0)}</div>
+                        <div className="line-item-amount">{item.quantity || 0}</div>
+                        <div className="line-item-amount" style={{ fontWeight: 600 }}>{formatCurrency(item.amount)}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="line-item-amount">{formatCurrency(item.amount)}</div>
+                        <div className="line-item-escalation">
+                          {item.escalation_rate !== 0 ? (
+                            <span className="escalation-badge">
+                              {formatPercent(item.escalation_rate)}
+                            </span>
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </div>
+                      </>
+                    )}
                     <button
                       className="line-item-delete"
                       onClick={() => handleDeleteItem(index)}
@@ -143,15 +192,25 @@ export function LineItemsManager({
           </div>
 
           <div style={{ marginTop: 'var(--spacing-lg)', marginBottom: 'var(--spacing-sm)' }}>
-            <div className="line-item-header" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <div className="line-item-header" style={{ borderBottom: '1px solid var(--color-border)', gridTemplateColumns: isCapexTab ? '2fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr 1fr auto' }}>
               <div>Item Name</div>
-              <div>Amount (€)</div>
-              <div>{isCapexTab ? 'Escalation (N/A)' : 'Escalation (%/year)'}</div>
+              {isCapexTab ? (
+                <>
+                  <div>Price/Item (€)</div>
+                  <div>Quantity</div>
+                  <div>Total (€)</div>
+                </>
+              ) : (
+                <>
+                  <div>Amount (€)</div>
+                  <div>Escalation (%/year)</div>
+                </>
+              )}
               <div>Action</div>
             </div>
           </div>
 
-          <div className="line-items-add-form">
+          <div className="line-items-add-form" style={{ gridTemplateColumns: isCapexTab ? '2fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr 1fr auto' }}>
             <input
               type="text"
               placeholder={`${isCapexTab ? 'CapEx' : 'OpEx'} item name (e.g., Solar panels, Maintenance)`}
@@ -161,30 +220,55 @@ export function LineItemsManager({
             />
             <input
               type="number"
-              placeholder="Amount (€)"
+              placeholder={isCapexTab ? 'Price per item' : 'Total amount'}
               value={newItemAmount}
               onChange={(e) => setNewItemAmount(e.target.value)}
               min="0"
-              step="1000"
+              step={isCapexTab ? '100' : '1000'}
               onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
             />
-            <input
-              type="number"
-              placeholder={isCapexTab ? 'N/A' : '0.01'}
-              value={newItemEscalation}
-              onChange={(e) => setNewItemEscalation(e.target.value)}
-              min="-0.1"
-              max="0.2"
-              step="0.01"
-              disabled={isCapexTab}
-              className={isCapexTab ? 'opex-only' : ''}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
-              title={isCapexTab ? 'CapEx items do not escalate (one-time cost)' : 'Annual escalation rate (e.g., 0.01 = 1%)'}
-            />
+            {isCapexTab ? (
+              <>
+                <input
+                  type="number"
+                  placeholder="Qty"
+                  value={newItemQuantity}
+                  onChange={(e) => setNewItemQuantity(e.target.value)}
+                  min="0"
+                  step="1"
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
+                />
+                <div style={{
+                  padding: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  fontWeight: 600,
+                  color: 'var(--color-primary)'
+                }}>
+                  {newItemAmount && newItemQuantity ?
+                    formatCurrency(parseFloat(newItemAmount) * parseFloat(newItemQuantity)) :
+                    '€0'
+                  }
+                </div>
+              </>
+            ) : (
+              <input
+                type="number"
+                placeholder="0.01"
+                value={newItemEscalation}
+                onChange={(e) => setNewItemEscalation(e.target.value)}
+                min="-0.1"
+                max="0.2"
+                step="0.01"
+                onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
+                title="Annual escalation rate (e.g., 0.01 = 1%)"
+              />
+            )}
             <button
               className="line-items-add-button"
               onClick={handleAddItem}
-              disabled={!newItemName.trim() || !newItemAmount}
+              disabled={!newItemName.trim() || !newItemAmount || (isCapexTab && !newItemQuantity)}
             >
               Add Item
             </button>

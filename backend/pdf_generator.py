@@ -158,11 +158,52 @@ class PDFReportGenerator:
 
             if capex_items:
                 elements.append(Paragraph("CapEx Line Items", self.styles['Heading3']))
-                capex_data = [['Item Name', 'Amount (€)']]
-                for item in capex_items:
-                    capex_data.append([item.get('name', 'N/A'), format_currency(item.get('amount', 0))])
-                capex_data.append(['Total CapEx', format_currency(cost_breakdown.get('total_capex', 0))])
-                elements.append(self._create_table(capex_data, highlight_last_row=True))
+
+                # Check if items have unit_price and quantity
+                has_unit_details = any(item.get('unit_price') is not None and item.get('quantity') is not None for item in capex_items)
+
+                if has_unit_details:
+                    # Show detailed breakdown with unit price and quantity
+                    capex_data = [['Item Name', 'Price/Item (€)', 'Quantity', 'Total (€)']]
+                    for item in capex_items:
+                        capex_data.append([
+                            item.get('name', 'N/A'),
+                            format_currency(item.get('unit_price', 0)),
+                            str(item.get('quantity', 0)),
+                            format_currency(item.get('amount', 0))
+                        ])
+                    capex_data.append(['Total CapEx', '', '', format_currency(cost_breakdown.get('total_capex', 0))])
+                    table = Table(capex_data, colWidths=[2.5 * inch, 1.5 * inch, 1 * inch, 1.5 * inch])
+                else:
+                    # Show simple breakdown
+                    capex_data = [['Item Name', 'Amount (€)']]
+                    for item in capex_items:
+                        capex_data.append([item.get('name', 'N/A'), format_currency(item.get('amount', 0))])
+                    capex_data.append(['Total CapEx', format_currency(cost_breakdown.get('total_capex', 0))])
+                    table = self._create_table(capex_data, highlight_last_row=True)
+
+                # Style for detailed table
+                if has_unit_details:
+                    style = [
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e5e7eb')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#111827')),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d1d5db')),
+                        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 1), (-1, -1), 9),
+                        ('TOPPADDING', (0, 1), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+                        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f3f4f6')),
+                        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ]
+                    table.setStyle(TableStyle(style))
+
+                elements.append(table)
                 elements.append(Spacer(1, 0.2 * inch))
 
             if opex_items:
