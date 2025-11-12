@@ -256,7 +256,7 @@ export function Results({ results }: ResultsProps) {
       </div>
 
       {/* Yearly Projections Table */}
-      {yearly_data && (
+      {results.yearly_data && (
         <div className="results-section collapsible-section">
           <div
             className="collapsible-header"
@@ -273,7 +273,7 @@ export function Results({ results }: ResultsProps) {
           <div className={`collapsible-content ${showYearlyTable ? 'expanded' : ''}`}>
             {showYearlyTable && (
               <div className="collapsible-content-inner">
-                <YearlyDataTable data={yearly_data} />
+                <YearlyDataTable data={results.yearly_data} />
               </div>
             )}
           </div>
@@ -281,7 +281,7 @@ export function Results({ results }: ResultsProps) {
       )}
 
       {/* Visual Analysis Charts */}
-      {yearly_data && (
+      {results.yearly_data && (
         <div className="results-section collapsible-section">
           <div
             className="collapsible-header"
@@ -298,7 +298,7 @@ export function Results({ results }: ResultsProps) {
           <div className={`collapsible-content ${showYearlyCharts ? 'expanded' : ''}`}>
             {showYearlyCharts && (
               <div className="collapsible-content-inner">
-                <YearlyCharts data={yearly_data} />
+                <YearlyCharts data={results.yearly_data} />
               </div>
             )}
           </div>
