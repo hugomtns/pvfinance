@@ -36,13 +36,19 @@ const getAssessmentClass = (assessment: string): string => {
 };
 
 export function Results({ results }: ResultsProps) {
-  const { project_summary, financing_structure, key_metrics, first_year_operations, assessment } =
+  const { project_summary, financing_structure, key_metrics, first_year_operations, assessment, yearly_data } =
     results;
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [showYearlyTable, setShowYearlyTable] = useState(false);
   const [showYearlyCharts, setShowYearlyCharts] = useState(false);
+
+  // Debug: Check if yearly_data exists
+  console.log('Results received, yearly_data exists:', !!yearly_data);
+  if (yearly_data) {
+    console.log('Yearly data years:', yearly_data.years.length);
+  }
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -250,7 +256,7 @@ export function Results({ results }: ResultsProps) {
       </div>
 
       {/* Yearly Projections Table */}
-      {results.yearly_data && (
+      {yearly_data && (
         <div className="results-section collapsible-section">
           <div
             className="collapsible-header"
@@ -267,7 +273,7 @@ export function Results({ results }: ResultsProps) {
           <div className={`collapsible-content ${showYearlyTable ? 'expanded' : ''}`}>
             {showYearlyTable && (
               <div className="collapsible-content-inner">
-                <YearlyDataTable data={results.yearly_data} />
+                <YearlyDataTable data={yearly_data} />
               </div>
             )}
           </div>
@@ -275,7 +281,7 @@ export function Results({ results }: ResultsProps) {
       )}
 
       {/* Visual Analysis Charts */}
-      {results.yearly_data && (
+      {yearly_data && (
         <div className="results-section collapsible-section">
           <div
             className="collapsible-header"
@@ -292,7 +298,7 @@ export function Results({ results }: ResultsProps) {
           <div className={`collapsible-content ${showYearlyCharts ? 'expanded' : ''}`}>
             {showYearlyCharts && (
               <div className="collapsible-content-inner">
-                <YearlyCharts data={results.yearly_data} />
+                <YearlyCharts data={yearly_data} />
               </div>
             )}
           </div>
