@@ -256,8 +256,8 @@ class PDFReportGenerator:
             fcf = yearly_data.get('fcf_to_equity', [])
             cumulative_fcf = yearly_data.get('cumulative_fcf_to_equity', [])
 
-            # Split into pages of 10 years each
-            years_per_page = 10
+            # Split into pages of 25 years each (fits most projects on one page)
+            years_per_page = 25
             for page_start in range(0, len(years), years_per_page):
                 page_end = min(page_start + years_per_page, len(years))
 
