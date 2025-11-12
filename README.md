@@ -12,6 +12,9 @@ This application provides detailed financial analysis for solar projects, includ
 - **NPV**: Net Present Value
 - **Financing Structure**: Debt sizing by DSCR and gearing ratio
 - **Cash Flow Analysis**: Revenue, EBITDA, CFADS projections
+- **Detailed Cost Breakdown**: Custom CapEx and OpEx line items with escalation rates
+- **PDF Export**: Professional PDF reports with all results
+- **Browser Storage**: Save and load projects locally
 
 ## Architecture
 
@@ -106,21 +109,39 @@ Open your browser and navigate to http://localhost:5173 to use the application.
 
 1. **Enter Project Parameters**:
    - Core parameters: Capacity, Capacity Factor, CapEx, PPA Price, O&M costs
+   - **Optional: Use Detailed Cost Line Items** - Break down CapEx and OpEx into individual items
    - Technical parameters: Degradation rate
    - Economic parameters: PPA & O&M escalation rates
    - Financing parameters: Gearing ratio, interest rate, debt tenor, target DSCR
    - Other: Project lifetime, tax rate, discount rate
 
-2. **Calculate**:
+2. **Add Cost Line Items** (Optional):
+   - Toggle "Use Detailed Cost Line Items" to enable
+   - Add CapEx items: Solar panels, inverters, BOS, grid connection, etc.
+   - Add OpEx items: Maintenance, insurance, land lease, etc.
+   - Set escalation rates for each OpEx item
+   - View running totals for CapEx and OpEx
+
+3. **Calculate**:
    - Click the "Calculate" button
    - The backend will process the inputs and return comprehensive financial analysis
 
-3. **Review Results**:
+4. **Review Results**:
    - Project summary
    - Key financial metrics (IRR, LCOE, DSCR, NPV)
    - Financing structure
    - First year operations
+   - Cost breakdown (if line items were used)
    - Project assessment with recommendations
+
+5. **Export PDF Report**:
+   - Click "Export to PDF" button
+   - Download professional PDF report with all results
+   - Includes cost breakdown if line items were used
+
+6. **Save/Load Projects**:
+   - Projects are automatically saved to browser localStorage
+   - Reopen the page to continue where you left off
 
 ## Testing
 
@@ -159,6 +180,7 @@ Once the backend is running, visit:
 - `GET /health` - Health check
 - `GET /defaults` - Get default parameter values
 - `POST /calculate` - Calculate project financials
+- `POST /export-pdf` - Export results as PDF report
 
 Example request to `/calculate`:
 
@@ -218,12 +240,15 @@ Auto-reload is enabled when running `python main.py` in development mode.
 ### Frontend Components
 
 - `InputForm.tsx` - Form for entering project parameters
-- `Results.tsx` - Display of calculation results
+- `LineItemsManager.tsx` - Component for managing cost line items
+- `Results.tsx` - Display of calculation results with PDF export
+- `useLocalStorage.ts` - Custom hook for browser storage
 
 ### Backend Modules
 
 - `main.py` - FastAPI application and endpoints
 - `calculator.py` - Financial calculation engine
+- `pdf_generator.py` - PDF report generator
 - `test_api.py` - API endpoint tests
 - `test_calculator.py` - Calculator logic tests
 

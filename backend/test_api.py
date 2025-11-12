@@ -194,5 +194,142 @@ def test_calculate_endpoint_irr_reasonableness():
     assert min_dscr > 1.0
 
 
+def test_calculate_with_cost_items():
+    """Test calculation with detailed cost line items"""
+    input_data = {
+        "capacity": 50,
+        "capacity_factor": 0.22,
+        "ppa_price": 70,
+        "cost_items": [
+            {
+                "name": "Solar panels",
+                "amount": 25_000_000,
+                "is_capex": True,
+                "escalation_rate": 0.0
+            },
+            {
+                "name": "Inverters",
+                "amount": 15_000_000,
+                "is_capex": True,
+                "escalation_rate": 0.0
+            },
+            {
+                "name": "BOS & Installation",
+                "amount": 10_000_000,
+                "is_capex": True,
+                "escalation_rate": 0.0
+            },
+            {
+                "name": "Maintenance",
+                "amount": 500_000,
+                "is_capex": False,
+                "escalation_rate": 0.01
+            },
+            {
+                "name": "Insurance",
+                "amount": 250_000,
+                "is_capex": False,
+                "escalation_rate": 0.01
+            }
+        ]
+    }
+
+    response = client.post("/calculate", json=input_data)
+    assert response.status_code == 200
+
+    data = response.json()
+
+    # Check that cost_items_breakdown is in response
+    assert "cost_items_breakdown" in data
+    assert "items" in data["cost_items_breakdown"]
+    assert "total_capex" in data["cost_items_breakdown"]
+    assert "total_opex_year_1" in data["cost_items_breakdown"]
+
+    # Verify totals
+    assert data["cost_items_breakdown"]["total_capex"] == 50_000_000
+    assert data["cost_items_breakdown"]["total_opex_year_1"] == 750_000
+
+    # Check that calculation succeeded
+    assert "project_irr" in data["key_metrics"]
+    assert data["key_metrics"]["project_irr"] > 0
+
+
+def test_calculate_with_cost_items_missing_capex():
+    """Test that missing CapEx items causes error"""
+    input_data = {
+        "capacity": 50,
+        "capacity_factor": 0.22,
+        "ppa_price": 70,
+        "cost_items": [
+            {
+                "name": "Maintenance",
+                "amount": 500_000,
+                "is_capex": False,
+                "escalation_rate": 0.01
+            }
+        ]
+    }
+
+    response = client.post("/calculate", json=input_data)
+    assert response.status_code == 400  # Bad request
+    assert "Total CapEx must be greater than 0" in response.json()["detail"]
+
+
+def test_calculate_with_cost_items_missing_opex():
+    """Test that missing OpEx items causes error"""
+    input_data = {
+        "capacity": 50,
+        "capacity_factor": 0.22,
+        "ppa_price": 70,
+        "cost_items": [
+            {
+                "name": "Solar panels",
+                "amount": 50_000_000,
+                "is_capex": True,
+                "escalation_rate": 0.0
+            }
+        ]
+    }
+
+    response = client.post("/calculate", json=input_data)
+    assert response.status_code == 400  # Bad request
+    assert "Total OpEx must be greater than 0" in response.json()["detail"]
+
+
+def test_calculate_without_cost_items_or_simple_inputs():
+    """Test that missing both cost_items and simple inputs causes error"""
+    input_data = {
+        "capacity": 50,
+        "capacity_factor": 0.22,
+        "ppa_price": 70,
+    }
+
+    response = client.post("/calculate", json=input_data)
+    assert response.status_code == 400  # Bad request
+
+
+def test_export_pdf_endpoint():
+    """Test PDF export endpoint"""
+    # First, get a calculation result
+    input_data = {
+        "capacity": 50,
+        "capacity_factor": 0.22,
+        "capex_per_mw": 1_000_000,
+        "ppa_price": 70,
+        "om_cost_per_mw_year": 15_000,
+    }
+
+    calc_response = client.post("/calculate", json=input_data)
+    results = calc_response.json()
+
+    # Now export to PDF
+    pdf_response = client.post("/export-pdf", json=results)
+
+    assert pdf_response.status_code == 200
+    assert pdf_response.headers["content-type"] == "application/pdf"
+    assert "attachment" in pdf_response.headers.get("content-disposition", "")
+    assert len(pdf_response.content) > 1000  # PDF should have meaningful content
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

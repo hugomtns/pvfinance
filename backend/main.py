@@ -4,11 +4,13 @@ FastAPI backend for PV Finance Calculator
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import uvicorn
 
 from calculator import ProjectInputs, SolarFinanceCalculator
+from pdf_generator import PDFReportGenerator
 
 # Create FastAPI app
 app = FastAPI(
@@ -27,6 +29,15 @@ app.add_middleware(
 )
 
 
+# Cost Line Item model
+class CostLineItem(BaseModel):
+    """Model for individual cost line items"""
+    name: str = Field(..., min_length=1, max_length=100, description="Line item name")
+    amount: float = Field(..., gt=0, description="Total cost amount in €")
+    is_capex: bool = Field(..., description="True for CapEx, False for OpEx")
+    escalation_rate: float = Field(0.0, ge=-0.1, le=0.2, description="Annual escalation rate for OpEx (decimal)")
+
+
 # Request model
 class ProjectInputsRequest(BaseModel):
     """Request model for project calculation"""
@@ -34,9 +45,12 @@ class ProjectInputsRequest(BaseModel):
     # Required inputs
     capacity: float = Field(..., gt=0, description="Project capacity in MW")
     capacity_factor: float = Field(..., gt=0, le=1, description="Capacity factor (decimal, e.g., 0.22)")
-    capex_per_mw: float = Field(..., gt=0, description="CapEx per MW in €")
+    capex_per_mw: Optional[float] = Field(None, gt=0, description="CapEx per MW in € (optional if using cost_items)")
     ppa_price: float = Field(..., gt=0, description="PPA price in €/MWh")
-    om_cost_per_mw_year: float = Field(..., gt=0, description="O&M cost per MW per year in €")
+    om_cost_per_mw_year: Optional[float] = Field(None, gt=0, description="O&M cost per MW per year in € (optional if using cost_items)")
+
+    # Optional cost line items (alternative to simple capex/opex)
+    cost_items: Optional[List[CostLineItem]] = Field(None, description="Detailed cost line items")
 
     # Technical parameters with defaults
     degradation_rate: float = Field(0.004, ge=0, le=0.1, description="Annual degradation rate (decimal)")
@@ -99,16 +113,43 @@ async def calculate_project(inputs: ProjectInputsRequest):
     - Project assessment
     """
     try:
+        # Determine CapEx and OpEx values
+        if inputs.cost_items:
+            # Calculate from line items
+            total_capex = sum(item.amount for item in inputs.cost_items if item.is_capex)
+            total_opex_year_1 = sum(item.amount for item in inputs.cost_items if not item.is_capex)
+
+            # Validate that we have some costs
+            if total_capex == 0:
+                raise ValueError("Total CapEx must be greater than 0")
+            if total_opex_year_1 == 0:
+                raise ValueError("Total OpEx must be greater than 0")
+
+            # Convert to per-MW values for calculator
+            capex_per_mw = total_capex / inputs.capacity
+            om_cost_per_mw_year = total_opex_year_1 / inputs.capacity
+
+            # For now, use simple om_escalation (we'll handle per-item escalation later)
+            om_escalation = inputs.om_escalation
+        else:
+            # Use simple inputs
+            if inputs.capex_per_mw is None or inputs.om_cost_per_mw_year is None:
+                raise ValueError("Must provide either cost_items or both capex_per_mw and om_cost_per_mw_year")
+
+            capex_per_mw = inputs.capex_per_mw
+            om_cost_per_mw_year = inputs.om_cost_per_mw_year
+            om_escalation = inputs.om_escalation
+
         # Convert request model to calculator inputs
         project_inputs = ProjectInputs(
             Capacity=inputs.capacity,
             Capacity_Factor=inputs.capacity_factor,
-            CapEx_per_MW=inputs.capex_per_mw,
+            CapEx_per_MW=capex_per_mw,
             PPA_Price=inputs.ppa_price,
-            OM_Cost_per_MW_year=inputs.om_cost_per_mw_year,
+            OM_Cost_per_MW_year=om_cost_per_mw_year,
             Degradation_Rate=inputs.degradation_rate,
             PPA_Escalation=inputs.ppa_escalation,
-            OM_Escalation=inputs.om_escalation,
+            OM_Escalation=om_escalation,
             Gearing_Ratio=inputs.gearing_ratio,
             Interest_Rate=inputs.interest_rate,
             Debt_Tenor=inputs.debt_tenor,
@@ -121,6 +162,14 @@ async def calculate_project(inputs: ProjectInputsRequest):
         # Create calculator and generate report
         calculator = SolarFinanceCalculator(project_inputs)
         report = calculator.generate_summary_report()
+
+        # Add cost items breakdown to report if provided
+        if inputs.cost_items:
+            report["cost_items_breakdown"] = {
+                "items": [item.model_dump() for item in inputs.cost_items],
+                "total_capex": total_capex,
+                "total_opex_year_1": total_opex_year_1
+            }
 
         return report
 
@@ -145,6 +194,36 @@ async def get_defaults():
     )
 
     return defaults.model_dump()
+
+
+@app.post("/export-pdf")
+async def export_pdf(report_data: Dict):
+    """
+    Export project results as PDF
+
+    Accepts the full calculation results and generates a downloadable PDF report
+    """
+    try:
+        # Generate PDF
+        pdf_generator = PDFReportGenerator()
+        pdf_buffer = pdf_generator.generate_report(report_data)
+
+        # Create filename with timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"PV_Finance_Report_{timestamp}.pdf"
+
+        # Return as streaming response
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
 
 
 if __name__ == "__main__":

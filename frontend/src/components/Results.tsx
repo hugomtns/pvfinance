@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ProjectResults } from '../types';
 import '../styles/Results.css';
 
@@ -36,9 +37,65 @@ export function Results({ results }: ResultsProps) {
   const { project_summary, financing_structure, key_metrics, first_year_operations, assessment } =
     results;
 
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      const response = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(results),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      // Get the PDF blob
+      const blob = await response.blob();
+
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PV_Finance_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      setExportError('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="results-container">
-      <h2>Project Financial Analysis</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
+        <h2 style={{ margin: 0 }}>Project Financial Analysis</h2>
+        <button
+          onClick={handleExportPDF}
+          disabled={isExporting}
+          className="btn btn-primary"
+          style={{ padding: '0.625rem 1.25rem' }}
+        >
+          {isExporting ? 'Generating PDF...' : 'Export to PDF'}
+        </button>
+      </div>
+
+      {exportError && (
+        <div className="error-message" style={{ marginBottom: 'var(--spacing-md)' }}>
+          {exportError}
+        </div>
+      )}
 
       {/* Project Summary */}
       <div className="results-section">

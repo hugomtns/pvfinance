@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import type { ProjectInputs } from '../types';
+import type { ProjectInputs, CostLineItem } from '../types';
 import { DEFAULT_INPUTS } from '../types';
+import { LineItemsManager } from './LineItemsManager';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import '../styles/InputForm.css';
 
 interface InputFormProps {
@@ -9,7 +11,10 @@ interface InputFormProps {
 }
 
 export function InputForm({ onSubmit, isLoading }: InputFormProps) {
-  const [inputs, setInputs] = useState<ProjectInputs>(DEFAULT_INPUTS);
+  const [inputs, setInputs] = useLocalStorage<ProjectInputs>('pvfinance_current_project', DEFAULT_INPUTS);
+  const [useLineItems, setUseLineItems] = useState(false);
+  const [capexItems, setCapexItems] = useState<CostLineItem[]>([]);
+  const [opexItems, setOpexItems] = useState<CostLineItem[]>([]);
 
   const handleChange = (field: keyof ProjectInputs, value: string) => {
     setInputs((prev) => ({
@@ -20,11 +25,30 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(inputs);
+
+    // Build inputs object with cost_items if in line items mode
+    const submissionInputs: ProjectInputs = {
+      ...inputs,
+      cost_items: useLineItems ? [...capexItems, ...opexItems] : undefined,
+    };
+
+    onSubmit(submissionInputs);
   };
 
   const handleReset = () => {
     setInputs(DEFAULT_INPUTS);
+    setCapexItems([]);
+    setOpexItems([]);
+    setUseLineItems(false);
+  };
+
+  const handleLineItemsToggle = (enabled: boolean) => {
+    setUseLineItems(enabled);
+    if (!enabled) {
+      // Reset line items when disabling
+      setCapexItems([]);
+      setOpexItems([]);
+    }
   };
 
   return (
@@ -64,19 +88,37 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
             />
           </div>
 
-          <div className="form-field">
-            <label>
-              CapEx per MW <span className="label-hint">(€)</span>
-            </label>
-            <input
-              type="number"
-              step="1000"
-              value={inputs.capex_per_mw}
-              onChange={(e) => handleChange('capex_per_mw', e.target.value)}
-              required
-              min="0"
-            />
-          </div>
+          {!useLineItems && (
+            <>
+              <div className="form-field">
+                <label>
+                  CapEx per MW <span className="label-hint">(€)</span>
+                </label>
+                <input
+                  type="number"
+                  step="1000"
+                  value={inputs.capex_per_mw || 0}
+                  onChange={(e) => handleChange('capex_per_mw', e.target.value)}
+                  required={!useLineItems}
+                  min="0"
+                />
+              </div>
+
+              <div className="form-field">
+                <label>
+                  O&M Cost per MW <span className="label-hint">(€/year)</span>
+                </label>
+                <input
+                  type="number"
+                  step="100"
+                  value={inputs.om_cost_per_mw_year || 0}
+                  onChange={(e) => handleChange('om_cost_per_mw_year', e.target.value)}
+                  required={!useLineItems}
+                  min="0"
+                />
+              </div>
+            </>
+          )}
 
           <div className="form-field">
             <label>
@@ -91,21 +133,20 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
               min="0"
             />
           </div>
-
-          <div className="form-field">
-            <label>
-              O&M Cost per MW <span className="label-hint">(€/year)</span>
-            </label>
-            <input
-              type="number"
-              step="100"
-              value={inputs.om_cost_per_mw_year}
-              onChange={(e) => handleChange('om_cost_per_mw_year', e.target.value)}
-              required
-              min="0"
-            />
-          </div>
         </div>
+      </div>
+
+      {/* Line Items Section */}
+      <div className="form-section">
+        <h3>Cost Breakdown (Optional)</h3>
+        <LineItemsManager
+          enabled={useLineItems}
+          onToggle={handleLineItemsToggle}
+          capexItems={capexItems}
+          opexItems={opexItems}
+          onCapexItemsChange={setCapexItems}
+          onOpexItemsChange={setOpexItems}
+        />
       </div>
 
       {/* Technical Parameters */}

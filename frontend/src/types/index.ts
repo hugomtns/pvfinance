@@ -1,11 +1,22 @@
+// Cost line item types
+export interface CostLineItem {
+  name: string;
+  amount: number;
+  is_capex: boolean;
+  escalation_rate: number;
+}
+
 // Project input types
 export interface ProjectInputs {
   // Required inputs
   capacity: number;
   capacity_factor: number;
-  capex_per_mw: number;
+  capex_per_mw?: number;  // Optional if using cost_items
   ppa_price: number;
-  om_cost_per_mw_year: number;
+  om_cost_per_mw_year?: number;  // Optional if using cost_items
+
+  // Optional cost line items
+  cost_items?: CostLineItem[];
 
   // Technical parameters with defaults
   degradation_rate: number;
@@ -74,12 +85,19 @@ export interface Assessment {
   overall: string;
 }
 
+export interface CostItemsBreakdown {
+  items: CostLineItem[];
+  total_capex: number;
+  total_opex_year_1: number;
+}
+
 export interface ProjectResults {
   project_summary: ProjectSummary;
   financing_structure: FinancingStructure;
   key_metrics: KeyMetrics;
   first_year_operations: FirstYearOperations;
   assessment: Assessment;
+  cost_items_breakdown?: CostItemsBreakdown;
 }
 
 // Default values
