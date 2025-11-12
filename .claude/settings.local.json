@@ -10,7 +10,20 @@
       "Bash(npm install:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(echo:*)",
+      "Bash(python:*)",
+      "Bash(find:*)",
+      "Bash(pip install:*)",
+      "Bash(timeout 3 sleep:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 5 sleep:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(taskkill:*)",
+      "Bash(tasklist:*)"
     ],
     "deny": [],
     "ask": []
