@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { ProjectResults } from '../types';
+import { YearlyDataTable } from './YearlyDataTable';
+import { YearlyCharts } from './YearlyCharts';
 import '../styles/Results.css';
 
 interface ResultsProps {
@@ -39,6 +41,8 @@ export function Results({ results }: ResultsProps) {
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [showYearlyTable, setShowYearlyTable] = useState(false);
+  const [showYearlyCharts, setShowYearlyCharts] = useState(false);
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -242,6 +246,52 @@ export function Results({ results }: ResultsProps) {
             <span className="result-label">CFADS</span>
             <span className="result-value">{formatCurrency(first_year_operations.cfads)}</span>
           </div>
+        </div>
+      </div>
+
+      {/* Yearly Projections Table */}
+      <div className="results-section collapsible-section">
+        <div
+          className="collapsible-header"
+          onClick={() => setShowYearlyTable(!showYearlyTable)}
+        >
+          <h3>Yearly Financial Projections</h3>
+          <div className="collapsible-toggle">
+            <span>{showYearlyTable ? 'Hide' : 'Show'} Table</span>
+            <span className={`collapsible-toggle-icon ${showYearlyTable ? 'expanded' : ''}`}>
+              ▼
+            </span>
+          </div>
+        </div>
+        <div className={`collapsible-content ${showYearlyTable ? 'expanded' : ''}`}>
+          {showYearlyTable && (
+            <div className="collapsible-content-inner">
+              <YearlyDataTable data={results.yearly_data} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Visual Analysis Charts */}
+      <div className="results-section collapsible-section">
+        <div
+          className="collapsible-header"
+          onClick={() => setShowYearlyCharts(!showYearlyCharts)}
+        >
+          <h3>Visual Analysis</h3>
+          <div className="collapsible-toggle">
+            <span>{showYearlyCharts ? 'Hide' : 'Show'} Charts</span>
+            <span className={`collapsible-toggle-icon ${showYearlyCharts ? 'expanded' : ''}`}>
+              ▼
+            </span>
+          </div>
+        </div>
+        <div className={`collapsible-content ${showYearlyCharts ? 'expanded' : ''}`}>
+          {showYearlyCharts && (
+            <div className="collapsible-content-inner">
+              <YearlyCharts data={results.yearly_data} />
+            </div>
+          )}
         </div>
       </div>
 

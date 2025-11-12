@@ -366,7 +366,67 @@ class SolarFinanceCalculator:
             },
             "assessment": self.assess_project(project_irr, equity_irr, min_dscr)
         }
-    
+
+    def generate_yearly_data(self) -> Dict:
+        """Generate year-by-year data for all operational metrics"""
+        years = list(range(1, self.inputs.Project_Lifetime + 1))
+        annual_debt_service = self.calc_Annual_Debt_Service()
+
+        # Initialize arrays for each metric
+        energy_production_mwh = []
+        revenue = []
+        om_costs = []
+        ebitda = []
+        cfads = []
+        fcf_to_equity = []
+        debt_service = []
+        dscr = []
+        cumulative_fcf = 0
+        cumulative_fcf_list = []
+
+        # Calculate values for each year
+        for year in years:
+            # Energy and financial metrics
+            energy = self.calc_Energy_year_t(year)
+            rev = self.calc_Revenue_year_t(year)
+            om = self.calc_OM_year_t(year)
+            ebit = self.calc_EBITDA_year_t(year)
+            cf = self.calc_CFADS_year_t(year)
+            fcf = self.calc_FCF_to_Equity_year_t(year)
+
+            energy_production_mwh.append(energy)
+            revenue.append(rev)
+            om_costs.append(om)
+            ebitda.append(ebit)
+            cfads.append(cf)
+            fcf_to_equity.append(fcf)
+
+            # Debt service (only during debt tenor)
+            if year <= self.inputs.Debt_Tenor:
+                debt_service.append(annual_debt_service)
+                dscr_val = self.calc_DSCR_year_t(year)
+                dscr.append(dscr_val if dscr_val is not None else 0)
+            else:
+                debt_service.append(0)
+                dscr.append(None)
+
+            # Cumulative FCF to equity
+            cumulative_fcf += fcf
+            cumulative_fcf_list.append(cumulative_fcf)
+
+        return {
+            "years": years,
+            "energy_production_mwh": energy_production_mwh,
+            "revenue": revenue,
+            "om_costs": om_costs,
+            "ebitda": ebitda,
+            "cfads": cfads,
+            "fcf_to_equity": fcf_to_equity,
+            "debt_service": debt_service,
+            "dscr": dscr,
+            "cumulative_fcf_to_equity": cumulative_fcf_list
+        }
+
     def assess_project(self, project_irr: float, equity_irr: float, min_dscr: float) -> Dict[str, str]:
         """Simple go/no-go assessment"""
         assessments = {}

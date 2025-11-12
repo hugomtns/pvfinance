@@ -1,0 +1,213 @@
+/* Yearly Data Table Styles */
+
+.yearly-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: var(--spacing-md) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background: var(--color-bg);
+}
+
+.yearly-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.yearly-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-secondary);
+  z-index: 10;
+}
+
+.yearly-table th {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: right;
+  font-weight: 600;
+  color: var(--color-text);
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.yearly-table th:first-child {
+  text-align: center;
+  position: sticky;
+  left: 0;
+  background: var(--color-bg-secondary);
+  z-index: 11;
+}
+
+.yearly-table th[title] {
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--color-text-secondary);
+  text-underline-offset: 3px;
+}
+
+.yearly-table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s;
+}
+
+.yearly-table tbody tr:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.yearly-table tbody tr.even {
+  background-color: #f9fafb;
+}
+
+.yearly-table tbody tr.odd {
+  background-color: var(--color-bg);
+}
+
+.yearly-table td {
+  padding: var(--spacing-xs) var(--spacing-md);
+  text-align: right;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.yearly-table td.year-cell {
+  text-align: center;
+  font-weight: 600;
+  position: sticky;
+  left: 0;
+  background: inherit;
+  z-index: 5;
+}
+
+.yearly-table td.number-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+.yearly-table td.currency-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+.yearly-table td.positive {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.yearly-table td.negative {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+/* Chart Styles */
+
+.yearly-charts-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  margin: var(--spacing-lg) 0;
+}
+
+.chart-section {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+}
+
+.chart-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.chart-caption {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-sm);
+  margin-bottom: 0;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Collapsible Section */
+
+.collapsible-section {
+  margin-top: var(--spacing-lg);
+}
+
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  user-select: none;
+}
+
+.collapsible-header:hover {
+  background-color: #e5e7eb;
+}
+
+.collapsible-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.collapsible-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.collapsible-toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.collapsible-toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.collapsible-content.expanded {
+  max-height: 100000px;
+  transition: max-height 0.5s ease-in;
+}
+
+.collapsible-content-inner {
+  padding: var(--spacing-lg) 0;
+}
+
+/* Responsive Design */
+
+@media (max-width: 768px) {
+  .yearly-table {
+    font-size: 0.75rem;
+  }
+
+  .yearly-table th,
+  .yearly-table td {
+    padding: var(--spacing-xs);
+  }
+
+  .chart-section {
+    padding: var(--spacing-md);
+  }
+
+  .chart-section h4 {
+    font-size: 0.875rem;
+  }
+}

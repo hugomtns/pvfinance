@@ -167,6 +167,9 @@ async def calculate_project(inputs: ProjectInputsRequest):
         calculator = SolarFinanceCalculator(project_inputs)
         report = calculator.generate_summary_report()
 
+        # Add yearly data
+        report["yearly_data"] = calculator.generate_yearly_data()
+
         # Add cost items breakdown to report if provided
         if inputs.cost_items:
             report["cost_items_breakdown"] = {

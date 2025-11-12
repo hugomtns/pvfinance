@@ -218,6 +218,81 @@ class PDFReportGenerator:
                 elements.append(self._create_table(opex_data, highlight_last_row=True))
                 elements.append(Spacer(1, 0.2 * inch))
 
+        # Yearly Financial Projections (if available)
+        yearly_data = report_data.get('yearly_data')
+        if yearly_data:
+            elements.append(PageBreak())
+            elements.append(Paragraph("Yearly Financial Projections", self.styles['SectionHeader']))
+
+            years = yearly_data.get('years', [])
+            energy = yearly_data.get('energy_production_mwh', [])
+            revenue = yearly_data.get('revenue', [])
+            om_costs = yearly_data.get('om_costs', [])
+            ebitda = yearly_data.get('ebitda', [])
+            cfads = yearly_data.get('cfads', [])
+            debt_service = yearly_data.get('debt_service', [])
+            dscr = yearly_data.get('dscr', [])
+            fcf = yearly_data.get('fcf_to_equity', [])
+            cumulative_fcf = yearly_data.get('cumulative_fcf_to_equity', [])
+
+            # Split into pages of 10 years each
+            years_per_page = 10
+            for page_start in range(0, len(years), years_per_page):
+                page_end = min(page_start + years_per_page, len(years))
+
+                if page_start > 0:
+                    elements.append(PageBreak())
+                    elements.append(Paragraph(f"Yearly Financial Projections (continued)", self.styles['SectionHeader']))
+
+                # Build table data for this page
+                yearly_table_data = [[
+                    'Year', 'Energy\n(MWh)', 'Revenue\n(€)', 'O&M\n(€)',
+                    'EBITDA\n(€)', 'CFADS\n(€)', 'Debt Svc\n(€)', 'DSCR',
+                    'FCF to Eq\n(€)', 'Cumul FCF\n(€)'
+                ]]
+
+                for i in range(page_start, page_end):
+                    dscr_val = f"{dscr[i]:.2f}x" if dscr[i] is not None else '—'
+                    yearly_table_data.append([
+                        str(years[i]),
+                        f"{energy[i]:,.0f}",
+                        format_currency(revenue[i]),
+                        format_currency(om_costs[i]),
+                        format_currency(ebitda[i]),
+                        format_currency(cfads[i]),
+                        format_currency(debt_service[i]),
+                        dscr_val,
+                        format_currency(fcf[i]),
+                        format_currency(cumulative_fcf[i])
+                    ])
+
+                # Create table with smaller font and tighter spacing
+                yearly_table = Table(yearly_table_data, colWidths=[
+                    0.4*inch, 0.7*inch, 0.8*inch, 0.7*inch, 0.8*inch,
+                    0.8*inch, 0.7*inch, 0.5*inch, 0.8*inch, 0.8*inch
+                ])
+
+                table_style = [
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563eb')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+                    ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 8),
+                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                    ('TOPPADDING', (0, 0), (-1, 0), 8),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+                    ('TOPPADDING', (0, 1), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+                ]
+                yearly_table.setStyle(TableStyle(table_style))
+
+                elements.append(yearly_table)
+                elements.append(Spacer(1, 0.2 * inch))
+
         # Assessment
         elements.append(PageBreak())
         elements.append(Paragraph("Project Assessment", self.styles['SectionHeader']))

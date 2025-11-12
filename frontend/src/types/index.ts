@@ -93,6 +93,19 @@ export interface CostItemsBreakdown {
   total_opex_year_1: number;
 }
 
+export interface YearlyData {
+  years: number[];
+  energy_production_mwh: number[];
+  revenue: number[];
+  om_costs: number[];
+  ebitda: number[];
+  cfads: number[];
+  fcf_to_equity: number[];
+  debt_service: number[];
+  dscr: (number | null)[];
+  cumulative_fcf_to_equity: number[];
+}
+
 export interface ProjectResults {
   project_summary: ProjectSummary;
   financing_structure: FinancingStructure;
@@ -100,6 +113,7 @@ export interface ProjectResults {
   first_year_operations: FirstYearOperations;
   assessment: Assessment;
   cost_items_breakdown?: CostItemsBreakdown;
+  yearly_data: YearlyData;
 }
 
 // Default values
