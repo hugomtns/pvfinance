@@ -117,16 +117,16 @@ export interface ProjectResults {
   yearly_data?: YearlyData;
 }
 
-// Default values
-// P50 Year 0 Yield calculated as: 50 MW × 0.22 CF × 8760 hours = 96,360 MWh
+// Default values for 300 MW utility-scale ground mount project
+// P50 Year 0 Yield calculated as: 300 MW × 0.22 CF × 8760 hours = 577,920 MWh
 export const DEFAULT_INPUTS: ProjectInputs = {
-  capacity: 50,
-  p50_year_0_yield: 96_360,  // MWh
-  capex_per_mw: 1_000_000,
-  ppa_price: 70,
-  om_cost_per_mw_year: 15_000,
+  capacity: 300,
+  p50_year_0_yield: 577_920,  // MWh
+  capex_per_mw: 850_000,
+  ppa_price: 65,
+  om_cost_per_mw_year: 12_000,
   degradation_rate: 0.004,
-  ppa_escalation: 0.01,
+  ppa_escalation: 0.0,
   om_escalation: 0.01,
   gearing_ratio: 0.75,
   interest_rate: 0.045,

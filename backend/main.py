@@ -201,13 +201,13 @@ async def get_defaults():
     Get default values for all parameters
     Useful for initializing the frontend form
     """
-    # Calculate P50 Year 0 Yield: 50 MW × 0.22 CF × 8760 hours = 96,360 MWh
+    # Calculate P50 Year 0 Yield: 300 MW × 0.22 CF × 8760 hours = 577,920 MWh
     defaults = ProjectInputsRequest(
-        capacity=50,
-        p50_year_0_yield=96_360,
-        capex_per_mw=1_000_000,
-        ppa_price=70,
-        om_cost_per_mw_year=15_000
+        capacity=300,
+        p50_year_0_yield=577_920,
+        capex_per_mw=850_000,
+        ppa_price=65,
+        om_cost_per_mw_year=12_000
     )
 
     return defaults.model_dump()
