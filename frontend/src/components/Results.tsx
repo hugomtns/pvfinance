@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { ProjectResults } from '../types';
 import { YearlyDataTable } from './YearlyDataTable';
-import { YearlyCharts } from './YearlyCharts';
 import '../styles/Results.css';
 
 interface ResultsProps {
@@ -42,7 +41,6 @@ export function Results({ results }: ResultsProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [showYearlyTable, setShowYearlyTable] = useState(false);
-  const [showYearlyCharts, setShowYearlyCharts] = useState(false);
 
   // Debug: Check if yearly_data exists
   console.log('Results received, yearly_data exists:', !!yearly_data);
@@ -278,31 +276,6 @@ export function Results({ results }: ResultsProps) {
             {showYearlyTable && (
               <div className="collapsible-content-inner">
                 <YearlyDataTable data={results.yearly_data} />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Visual Analysis Charts */}
-      {results.yearly_data && (
-        <div className="results-section collapsible-section">
-          <div
-            className="collapsible-header"
-            onClick={() => setShowYearlyCharts(!showYearlyCharts)}
-          >
-            <h3>Visual Analysis</h3>
-            <div className="collapsible-toggle">
-              <span>{showYearlyCharts ? 'Hide' : 'Show'} Charts</span>
-              <span className={`collapsible-toggle-icon ${showYearlyCharts ? 'expanded' : ''}`}>
-                ▼
-              </span>
-            </div>
-          </div>
-          <div className={`collapsible-content ${showYearlyCharts ? 'expanded' : ''}`}>
-            {showYearlyCharts && (
-              <div className="collapsible-content-inner">
-                <YearlyCharts data={results.yearly_data} />
               </div>
             )}
           </div>
