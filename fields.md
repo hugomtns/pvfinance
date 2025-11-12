@@ -56,7 +56,7 @@ Landscaping (grass, bushes, trees)
 ## Construction Support
 Diesel & water
 Electricity generator
-Office container (20ft)
+Office container
 Warehouse container
 Construction site safety equipment
 Health and safety coordinator
