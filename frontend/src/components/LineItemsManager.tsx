@@ -144,7 +144,7 @@ export function LineItemsManager({
                   <div></div>
                 </div>
                 {currentItems.map((item, index) => (
-                  <div key={index} className="line-item" style={{ gridTemplateColumns: isCapexTab ? '3fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto' }}>
+                  <div key={index} className="line-item" style={{ gridTemplateColumns: isCapexTab ? '4fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto' }}>
                     <div className="line-item-name">{item.name}</div>
                     {isCapexTab ? (
                       <>
@@ -175,7 +175,7 @@ export function LineItemsManager({
           </div>
 
           <div style={{ marginTop: 'var(--spacing-lg)', marginBottom: 'var(--spacing-sm)' }}>
-            <div className="line-item-header" style={{ borderBottom: '1px solid var(--color-border)', gridTemplateColumns: isCapexTab ? '3fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto' }}>
+            <div className="line-item-header" style={{ borderBottom: '1px solid var(--color-border)', gridTemplateColumns: isCapexTab ? '4fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto' }}>
               <div>Item Name</div>
               {isCapexTab ? (
                 <>
@@ -192,7 +192,7 @@ export function LineItemsManager({
             </div>
           </div>
 
-          <div className="line-items-add-form" style={{ gridTemplateColumns: isCapexTab ? '3fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto' }}>
+          <div className="line-items-add-form" style={{ gridTemplateColumns: isCapexTab ? '4fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto' }}>
             {isCapexTab ? (
               <CapexAutocomplete
                 value={newItemName}
