@@ -38,11 +38,30 @@ function App() {
 
       {error && (
         <div className="error-container">
-          <h3>Error</h3>
-          <p>{error}</p>
-          <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-            Make sure the backend server is running on port 8000.
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+            <div style={{ flex: 1 }}>
+              <h3>Error</h3>
+              <p>{error}</p>
+              <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                Make sure the backend server is running on port 8000.
+              </p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                padding: '0 0.5rem',
+                color: 'inherit',
+                lineHeight: 1
+              }}
+              title="Dismiss error"
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
 
