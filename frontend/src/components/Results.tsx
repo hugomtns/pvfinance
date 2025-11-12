@@ -114,11 +114,11 @@ export function Results({ results }: ResultsProps) {
             <span className="result-value">{project_summary.project_lifetime} years</span>
           </div>
           <div className="result-item">
-            <span className="result-label">Total CapEx</span>
+            <span className="result-label" title="Capital Expenditures: The total upfront cost incurred to develop and construct the project until it reaches the Commercial Operation Date (COD). This includes all costs for land, permits, engineering, equipment (panels, inverters, racking), and construction (labor).">Total CapEx</span>
             <span className="result-value">{formatCurrency(project_summary.total_capex)}</span>
           </div>
           <div className="result-item">
-            <span className="result-label">CapEx per MW</span>
+            <span className="result-label" title="Capital Expenditures: The total upfront cost incurred to develop and construct the project until it reaches the Commercial Operation Date (COD). This includes all costs for land, permits, engineering, equipment (panels, inverters, racking), and construction (labor).">CapEx per MW</span>
             <span className="result-value">{formatCurrency(project_summary.capex_per_mw)}</span>
           </div>
         </div>
@@ -130,38 +130,38 @@ export function Results({ results }: ResultsProps) {
         <div className="results-grid">
           <div className="metric-card">
             <div className="result-item">
-              <span className="result-label">Project IRR</span>
+              <span className="result-label" title="Internal Rate of Return: The primary metric used by equity investors to measure the profitability of their investment. It is the discount rate at which the Net Present Value (NPV) of all project cash flows equals zero.">Project IRR</span>
               <span className="result-value">{formatPercent(key_metrics.project_irr)}</span>
             </div>
           </div>
           <div className="metric-card">
             <div className="result-item">
-              <span className="result-label">Equity IRR</span>
+              <span className="result-label" title="Internal Rate of Return: The primary metric used by equity investors to measure the profitability of their investment. It is the discount rate at which the Net Present Value (NPV) of all project cash flows equals zero.">Equity IRR</span>
               <span className="result-value">{formatPercent(key_metrics.equity_irr)}</span>
             </div>
           </div>
           <div className="metric-card">
             <div className="result-item">
-              <span className="result-label">LCOE</span>
+              <span className="result-label" title="Levelized Cost of Energy: A metric used to compare the lifetime cost of different generation technologies. It represents the breakeven price (€/MWh) at which the project must sell its energy to cover its lifetime costs (CapEx, OpEx, and financing) and achieve a target return.">LCOE</span>
               <span className="result-value">€{formatNumber(key_metrics.lcoe)}/MWh</span>
             </div>
           </div>
           <div className="metric-card">
             <div className="result-item">
-              <span className="result-label">Min DSCR</span>
+              <span className="result-label" title="Debt Service Coverage Ratio: A key metric used by lenders to determine the project's ability to repay its loan. It is calculated as CFADS / Total Debt Service (Principal + Interest). Lenders require this to be above 1.0x (e.g., 1.25x) as a safety buffer.">Min DSCR</span>
               <span className="result-value">{formatNumber(key_metrics.min_dscr)}x</span>
             </div>
           </div>
           <div className="result-item">
-            <span className="result-label">Avg DSCR</span>
+            <span className="result-label" title="Debt Service Coverage Ratio: A key metric used by lenders to determine the project's ability to repay its loan. It is calculated as CFADS / Total Debt Service (Principal + Interest). Lenders require this to be above 1.0x (e.g., 1.25x) as a safety buffer.">Avg DSCR</span>
             <span className="result-value">{formatNumber(key_metrics.avg_dscr)}x</span>
           </div>
           <div className="result-item">
-            <span className="result-label">Project NPV</span>
+            <span className="result-label" title="Net Present Value: A core financial metric that calculates the total value of the project in today's dollars. It sums all future cash flows (positive and negative) after discounting them by a specific rate. A positive NPV means the project is profitable.">Project NPV</span>
             <span className="result-value">{formatCurrency(key_metrics.project_npv)}</span>
           </div>
           <div className="result-item">
-            <span className="result-label">PPA Price</span>
+            <span className="result-label" title="Power Purchase Agreement: The most critical project contract. It is the long-term (e.g., 15-25 year) sales agreement with a creditworthy offtaker (like a utility) who agrees to purchase all electricity produced by the project at a fixed, often escalating, price.">PPA Price</span>
             <span className="result-value">€{formatNumber(key_metrics.ppa_price)}/MWh</span>
           </div>
         </div>
@@ -221,7 +221,7 @@ export function Results({ results }: ResultsProps) {
         <h3>First Year Operations</h3>
         <div className="results-grid">
           <div className="result-item">
-            <span className="result-label">Energy Production</span>
+            <span className="result-label" title="Megawatt-hour: A unit of energy (production), equal to 1,000 kilowatt-hours (kWh). A project with a 10 MW capacity running at full power for one hour produces 10 MWh of energy. PPAs are priced in €/MWh.">Energy Production</span>
             <span className="result-value">
               {formatNumber(first_year_operations.energy_production_mwh, 0)} MWh
             </span>
@@ -231,7 +231,7 @@ export function Results({ results }: ResultsProps) {
             <span className="result-value">{formatCurrency(first_year_operations.revenue)}</span>
           </div>
           <div className="result-item">
-            <span className="result-label">O&M Costs</span>
+            <span className="result-label" title="Operations and Maintenance: The ongoing activities required to keep the solar farm running efficiently after it is built. This includes panel cleaning, vegetation management, inverter repairs, and performance monitoring.">O&M Costs</span>
             <span className="result-value">{formatCurrency(first_year_operations.om_costs)}</span>
           </div>
           <div className="result-item">

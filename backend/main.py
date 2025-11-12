@@ -38,6 +38,8 @@ class CostLineItem(BaseModel):
     # CapEx-specific fields
     unit_price: Optional[float] = Field(None, description="Price per item (CapEx only)")
     quantity: Optional[float] = Field(None, description="Number of items (CapEx only)")
+    # Deprecated field (kept for backward compatibility with old localStorage data)
+    escalation_rate: Optional[float] = Field(None, description="Deprecated - use general O&M escalation instead")
 
 
 # Request model

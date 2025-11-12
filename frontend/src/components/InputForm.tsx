@@ -91,7 +91,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
           {!useLineItems && (
             <>
               <div className="form-field">
-                <label>
+                <label title="The total upfront cost incurred to develop and construct the project until it reaches the Commercial Operation Date (COD). This includes all costs for land, permits, engineering, equipment (panels, inverters, racking), and construction (labor).">
                   CapEx per MW <span className="label-hint">(€)</span>
                 </label>
                 <input
@@ -105,7 +105,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
               </div>
 
               <div className="form-field">
-                <label>
+                <label title="The ongoing activities required to keep the solar farm running efficiently after it is built. This includes panel cleaning, vegetation management, inverter repairs, and performance monitoring.">
                   O&M Cost per MW <span className="label-hint">(€/year)</span>
                 </label>
                 <input
@@ -121,7 +121,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
           )}
 
           <div className="form-field">
-            <label>
+            <label title="Power Purchase Agreement: The most critical project contract. It is the long-term (e.g., 15-25 year) sales agreement with a creditworthy offtaker (like a utility) who agrees to purchase all electricity produced by the project at a fixed, often escalating, price.">
               PPA Price <span className="label-hint">(€/MWh)</span>
             </label>
             <input
@@ -188,7 +188,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
           </div>
 
           <div className="form-field">
-            <label>
+            <label title="Operating Expenditures: The recurring, annual costs to operate the project after COD. This includes the O&M contract, land lease payments, property taxes, insurance, and asset management fees.">
               O&M Escalation <span className="label-hint">(decimal/year, e.g., 0.01)</span>
             </label>
             <input
@@ -249,7 +249,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
           </div>
 
           <div className="form-field">
-            <label>
+            <label title="Debt Service Coverage Ratio: A key metric used by lenders to determine the project's ability to repay its loan. It is calculated as CFADS / Total Debt Service (Principal + Interest). Lenders require this to be above 1.0x (e.g., 1.25x) as a safety buffer.">
               Target DSCR <span className="label-hint">(ratio, e.g., 1.30)</span>
             </label>
             <input
