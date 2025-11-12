@@ -35,7 +35,6 @@ class CostLineItem(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Line item name")
     amount: float = Field(..., gt=0, description="Total cost amount in €")
     is_capex: bool = Field(..., description="True for CapEx, False for OpEx")
-    escalation_rate: float = Field(0.0, ge=-0.1, le=0.2, description="Annual escalation rate for OpEx (decimal)")
     # CapEx-specific fields
     unit_price: Optional[float] = Field(None, description="Price per item (CapEx only)")
     quantity: Optional[float] = Field(None, description="Number of items (CapEx only)")
@@ -132,7 +131,7 @@ async def calculate_project(inputs: ProjectInputsRequest):
             capex_per_mw = total_capex / inputs.capacity
             om_cost_per_mw_year = total_opex_year_1 / inputs.capacity
 
-            # For now, use simple om_escalation (we'll handle per-item escalation later)
+            # Use general O&M escalation for all OpEx items
             om_escalation = inputs.om_escalation
         else:
             # Use simple inputs

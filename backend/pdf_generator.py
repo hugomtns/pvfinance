@@ -208,15 +208,13 @@ class PDFReportGenerator:
 
             if opex_items:
                 elements.append(Paragraph("OpEx Line Items", self.styles['Heading3']))
-                opex_data = [['Item Name', 'Amount (€)', 'Escalation']]
+                opex_data = [['Item Name', 'Amount (€)']]
                 for item in opex_items:
-                    escalation = format_percent(item.get('escalation_rate', 0))
                     opex_data.append([
                         item.get('name', 'N/A'),
-                        format_currency(item.get('amount', 0)),
-                        escalation
+                        format_currency(item.get('amount', 0))
                     ])
-                opex_data.append(['Total OpEx (Year 1)', format_currency(cost_breakdown.get('total_opex_year_1', 0)), ''])
+                opex_data.append(['Total OpEx (Year 1)', format_currency(cost_breakdown.get('total_opex_year_1', 0))])
                 elements.append(self._create_table(opex_data, highlight_last_row=True))
                 elements.append(Spacer(1, 0.2 * inch))
 

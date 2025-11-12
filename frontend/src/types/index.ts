@@ -3,7 +3,6 @@ export interface CostLineItem {
   name: string;
   amount: number;  // For OpEx: total amount. For CapEx: calculated from unit_price × quantity
   is_capex: boolean;
-  escalation_rate: number;
   // CapEx-specific fields
   unit_price?: number;  // Price per item (CapEx only)
   quantity?: number;    // Number of items (CapEx only)
