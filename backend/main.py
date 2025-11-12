@@ -168,7 +168,14 @@ async def calculate_project(inputs: ProjectInputsRequest):
         report = calculator.generate_summary_report()
 
         # Add yearly data
-        report["yearly_data"] = calculator.generate_yearly_data()
+        try:
+            yearly_data = calculator.generate_yearly_data()
+            print(f"DEBUG: Generated yearly_data with {len(yearly_data['years'])} years")
+            report["yearly_data"] = yearly_data
+        except Exception as e:
+            print(f"ERROR generating yearly_data: {e}")
+            import traceback
+            traceback.print_exc()
 
         # Add cost items breakdown to report if provided
         if inputs.cost_items:
