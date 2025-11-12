@@ -1,0 +1,45 @@
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.app-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-sm);
+}
+
+.app-header p {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.error-container {
+  background-color: #fee2e2;
+  color: var(--color-error);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-lg);
+  border-left: 4px solid var(--color-error);
+}
+
+.error-container h3 {
+  margin-bottom: var(--spacing-sm);
+  font-size: 1.125rem;
+}
+
+.error-container pre {
+  background: white;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  overflow-x: auto;
+  margin-top: var(--spacing-sm);
+  font-size: 0.875rem;
+}
