@@ -3,6 +3,10 @@
   width: 100%;
 }
 
+.autocomplete-container input {
+  width: 100%;
+}
+
 .autocomplete-dropdown {
   position: absolute;
   top: 100%;
