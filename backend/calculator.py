@@ -54,14 +54,14 @@ def pv_calc(rate, nper, pmt, fv=0):
 @dataclass
 class ProjectInputs:
     """Core project inputs - using MW/MWh units throughout"""
-    
+
     # Required inputs
     Capacity: float  # MW
-    Capacity_Factor: float  # decimal (e.g., 0.22 for 22%)
+    P50_Year_0_Yield: float  # MWh (Year 0/Year 1 energy production before degradation)
     CapEx_per_MW: float  # €/MW
     PPA_Price: float  # €/MWh
     OM_Cost_per_MW_year: float  # €/MW-year
-    
+
     # Technical parameters with defaults
     Degradation_Rate: float = 0.004  # decimal per year (0.004 = 0.4%/year)
     
@@ -85,26 +85,25 @@ class ProjectInputs:
 
 class SolarFinanceCalculator:
     """Calculator implementing explicit financial model"""
-    
+
     def __init__(self, inputs: ProjectInputs):
         self.inputs = inputs
-        
+
     # =================================================================
     # INTERMEDIATE CALCULATIONS
     # =================================================================
-    
+
+    def calc_Capacity_Factor(self) -> float:
+        """Derived Capacity Factor = P50_Year_0_Yield / (Capacity × 8760)"""
+        return self.inputs.P50_Year_0_Yield / (self.inputs.Capacity * 8760)
+
     def calc_Total_CapEx(self) -> float:
         """1. Total CapEx = Capacity × CapEx_per_MW"""
         return self.inputs.Capacity * self.inputs.CapEx_per_MW
-    
+
     def calc_Energy_year_t(self, year: int) -> float:
-        """2. Energy = Capacity × CF × 8760 × (1 - Degradation)^(year-1)"""
-        return (
-            self.inputs.Capacity 
-            * self.inputs.Capacity_Factor 
-            * 8760 
-            * (1 - self.inputs.Degradation_Rate) ** (year - 1)
-        )
+        """2. Energy = P50_Year_0_Yield × (1 - Degradation)^(year-1)"""
+        return self.inputs.P50_Year_0_Yield * (1 - self.inputs.Degradation_Rate) ** (year - 1)
     
     def calc_Revenue_year_t(self, year: int) -> float:
         """3. Revenue = Energy × PPA_Price × (1 + Escalation)^(year-1)"""
@@ -332,7 +331,8 @@ class SolarFinanceCalculator:
         return {
             "project_summary": {
                 "capacity_mw": self.inputs.Capacity,
-                "capacity_factor": self.inputs.Capacity_Factor,
+                "capacity_factor": self.calc_Capacity_Factor(),
+                "p50_year_0_yield_mwh": self.inputs.P50_Year_0_Yield,
                 "project_lifetime": self.inputs.Project_Lifetime,
                 "total_capex": total_capex,
                 "capex_per_mw": self.inputs.CapEx_per_MW
@@ -474,9 +474,10 @@ def example_usage():
     """Example of how to use the calculator"""
     
     # Define project inputs (note: using MW units now, not kW)
+    # P50 Year 0 Yield calculated as: 50 MW × 0.22 CF × 8760 hours = 96,360 MWh
     project = ProjectInputs(
         Capacity=50,  # MW
-        Capacity_Factor=0.22,  # 22%
+        P50_Year_0_Yield=96_360,  # MWh (Year 0 energy production)
         CapEx_per_MW=1_000_000,  # €1,000,000/MW = €1,000/kW
         PPA_Price=70,  # €70/MWh
         OM_Cost_per_MW_year=15_000,  # €15,000/MW-year = €15/kW-year

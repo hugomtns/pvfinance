@@ -48,7 +48,7 @@ class ProjectInputsRequest(BaseModel):
 
     # Required inputs
     capacity: float = Field(..., gt=0, description="Project capacity in MW")
-    capacity_factor: float = Field(..., gt=0, le=1, description="Capacity factor (decimal, e.g., 0.22)")
+    p50_year_0_yield: float = Field(..., gt=0, description="P50 Year 0 energy yield in MWh")
     capex_per_mw: Optional[float] = Field(None, gt=0, description="CapEx per MW in € (optional if using cost_items)")
     ppa_price: float = Field(..., gt=0, description="PPA price in €/MWh")
     om_cost_per_mw_year: Optional[float] = Field(None, gt=0, description="O&M cost per MW per year in € (optional if using cost_items)")
@@ -149,7 +149,7 @@ async def calculate_project(inputs: ProjectInputsRequest):
         # Convert request model to calculator inputs
         project_inputs = ProjectInputs(
             Capacity=inputs.capacity,
-            Capacity_Factor=inputs.capacity_factor,
+            P50_Year_0_Yield=inputs.p50_year_0_yield,
             CapEx_per_MW=capex_per_mw,
             PPA_Price=inputs.ppa_price,
             OM_Cost_per_MW_year=om_cost_per_mw_year,
@@ -201,9 +201,10 @@ async def get_defaults():
     Get default values for all parameters
     Useful for initializing the frontend form
     """
+    # Calculate P50 Year 0 Yield: 50 MW × 0.22 CF × 8760 hours = 96,360 MWh
     defaults = ProjectInputsRequest(
         capacity=50,
-        capacity_factor=0.22,
+        p50_year_0_yield=96_360,
         capex_per_mw=1_000_000,
         ppa_price=70,
         om_cost_per_mw_year=15_000

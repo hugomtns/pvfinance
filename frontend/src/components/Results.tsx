@@ -116,6 +116,10 @@ export function Results({ results }: ResultsProps) {
             <span className="result-value">{formatNumber(project_summary.capacity_mw, 1)} MW</span>
           </div>
           <div className="result-item">
+            <span className="result-label" title="P50 Year 0 Yield: The expected first-year energy production in MWh before degradation is applied.">P50 Year 0 Yield</span>
+            <span className="result-value">{formatNumber(project_summary.p50_year_0_yield_mwh, 0)} MWh</span>
+          </div>
+          <div className="result-item">
             <span className="result-label">Capacity Factor</span>
             <span className="result-value">{formatPercent(project_summary.capacity_factor)}</span>
           </div>

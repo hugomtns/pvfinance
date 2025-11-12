@@ -12,7 +12,7 @@ export interface CostLineItem {
 export interface ProjectInputs {
   // Required inputs
   capacity: number;
-  capacity_factor: number;
+  p50_year_0_yield: number;  // MWh - Year 0/Year 1 energy production
   capex_per_mw?: number;  // Optional if using cost_items
   ppa_price: number;
   om_cost_per_mw_year?: number;  // Optional if using cost_items
@@ -45,6 +45,7 @@ export interface ProjectInputs {
 export interface ProjectSummary {
   capacity_mw: number;
   capacity_factor: number;
+  p50_year_0_yield_mwh: number;
   project_lifetime: number;
   total_capex: number;
   capex_per_mw: number;
@@ -117,9 +118,10 @@ export interface ProjectResults {
 }
 
 // Default values
+// P50 Year 0 Yield calculated as: 50 MW × 0.22 CF × 8760 hours = 96,360 MWh
 export const DEFAULT_INPUTS: ProjectInputs = {
   capacity: 50,
-  capacity_factor: 0.22,
+  p50_year_0_yield: 96_360,  // MWh
   capex_per_mw: 1_000_000,
   ppa_price: 70,
   om_cost_per_mw_year: 15_000,

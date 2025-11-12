@@ -74,17 +74,16 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
           </div>
 
           <div className="form-field">
-            <label>
-              Capacity Factor <span className="label-hint">(e.g., 0.22 for 22%)</span>
+            <label title="P50 Year 0 Yield: The expected first-year energy production in MWh before degradation is applied. This is the median (P50) projection, meaning there's a 50% probability the actual production will be higher or lower.">
+              P50 Year 0 Yield <span className="label-hint">(MWh)</span>
             </label>
             <input
               type="number"
-              step="0.01"
-              value={inputs.capacity_factor}
-              onChange={(e) => handleChange('capacity_factor', e.target.value)}
+              step="any"
+              value={inputs.p50_year_0_yield}
+              onChange={(e) => handleChange('p50_year_0_yield', e.target.value)}
               required
               min="0"
-              max="1"
             />
           </div>
 
