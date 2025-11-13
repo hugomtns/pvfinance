@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Dict, Optional, List
 import uvicorn
+import os
 
 from calculator import ProjectInputs, SolarFinanceCalculator
 from pdf_generator import PDFReportGenerator
@@ -19,13 +20,25 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS for local development
+# Configure CORS - allow Railway, Vercel, Netlify, and local development
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:5174",  # Vite preview
+]
+
+# Add custom origin from environment variable if provided
+custom_origin = os.getenv("FRONTEND_URL")
+if custom_origin:
+    allowed_origins.append(custom_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite default ports
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_origin_regex=r"https://.*\.(railway\.app|vercel\.app|netlify\.app)",  # Allow Railway, Vercel, Netlify
 )
 
 
