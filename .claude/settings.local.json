@@ -23,7 +23,8 @@
       "Bash(findstr:*)",
       "Bash(dir:*)",
       "Bash(taskkill:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

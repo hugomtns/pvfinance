@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { ProjectInputs, CostLineItem } from '../types';
 import { DEFAULT_INPUTS } from '../types';
 import { LineItemsManager } from './LineItemsManager';

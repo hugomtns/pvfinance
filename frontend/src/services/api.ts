@@ -1,15 +1,21 @@
 import type { ProjectInputs, ProjectResults } from '../types';
 
-const API_BASE_URL = '/api';
+// Use environment variable for API URL, fallback to local proxy
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export class ApiError extends Error {
+  statusCode?: number;
+  detail?: string;
+
   constructor(
     message: string,
-    public statusCode?: number,
-    public detail?: string
+    statusCode?: number,
+    detail?: string
   ) {
     super(message);
     this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.detail = detail;
   }
 }
 
