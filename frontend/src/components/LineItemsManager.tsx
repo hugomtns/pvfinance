@@ -140,12 +140,14 @@ export function LineItemsManager({
         <div className="line-items-content">
           <div className="line-items-tabs">
             <button
+              type="button"
               className={`tab-button ${activeTab === 'capex' ? 'active' : ''}`}
               onClick={() => handleTabChange('capex')}
             >
               CapEx Items ({capexItems.length})
             </button>
             <button
+              type="button"
               className={`tab-button ${activeTab === 'opex' ? 'active' : ''}`}
               onClick={() => handleTabChange('opex')}
             >
@@ -186,6 +188,7 @@ export function LineItemsManager({
                       </>
                     )}
                     <button
+                      type="button"
                       className="line-item-delete"
                       onClick={() => handleDeleteItem(index)}
                       title="Delete item"
@@ -210,6 +213,7 @@ export function LineItemsManager({
             gap: 'var(--spacing-sm)'
           }}>
             <button
+              type="button"
               onClick={handleFillFromDesign}
               disabled={capacity <= 0}
               style={{
@@ -299,6 +303,7 @@ export function LineItemsManager({
               </>
             )}
             <button
+              type="button"
               className="line-items-add-button"
               onClick={handleAddItem}
               disabled={!newItemName.trim() || !newItemAmount || (isCapexTab && !newItemQuantity)}
