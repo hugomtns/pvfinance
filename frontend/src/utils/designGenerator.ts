@@ -13,51 +13,51 @@ import { ALL_OPEX_FIELDS } from '../data/opexFields';
 // ============================================================================
 
 const PRICING = {
-  // PV Equipment
-  SOLAR_MODULE_UNIT_PRICE: 130, // €/panel (550W panels, ~€0.24/W)
+  // PV Equipment - competitive market rates
+  SOLAR_MODULE_UNIT_PRICE: 100, // €/panel (550W panels, ~€0.18/W)
   SOLAR_MODULE_WATTAGE: 550, // W per panel
-  STRING_INVERTER_UNIT_PRICE: 5500, // € per 100kW inverter
+  STRING_INVERTER_UNIT_PRICE: 4200, // € per 100kW inverter
   STRING_INVERTER_CAPACITY_KW: 100, // kW per inverter
-  COMBINER_BOX_UNIT_PRICE: 800, // € per box
+  COMBINER_BOX_UNIT_PRICE: 600, // € per box
   COMBINER_BOXES_PER_MW: 4, // boxes per MW
 
-  // Mounting & Installation
-  MOUNTING_STRUCTURE_PER_KW: 75, // €/kW for fixed tilt ground mount
-  FOUNDATIONS_PER_KW: 60, // €/kW for civil works
+  // Mounting & Installation - optimized for ground mount
+  MOUNTING_STRUCTURE_PER_KW: 55, // €/kW for fixed tilt ground mount
+  FOUNDATIONS_PER_KW: 40, // €/kW for civil works
 
-  // Electrical Infrastructure
-  DC_CABLE_UNIT_PRICE: 65, // €/m for DC cables
+  // Electrical Infrastructure - efficient sizing
+  DC_CABLE_UNIT_PRICE: 50, // €/m for DC cables
   DC_CABLE_METERS_PER_MW: 150, // meters of DC cable per MW
-  AC_CABLE_UNIT_PRICE: 100, // €/m for AC cables
+  AC_CABLE_UNIT_PRICE: 75, // €/m for AC cables
   AC_CABLE_METERS_PER_MW: 200, // meters of AC cable per MW
-  MV_TRANSFORMER_UNIT_PRICE: 80000, // € per transformer
+  MV_TRANSFORMER_UNIT_PRICE: 60000, // € per transformer
   MV_TRANSFORMER_CAPACITY_MW: 5, // MW capacity per transformer
-  GRID_CONNECTION_PER_MW: 50000, // € per MW for grid connection equipment
+  GRID_CONNECTION_PER_MW: 38000, // € per MW for grid connection equipment
 
-  // Monitoring & Control
-  SCADA_BASE_COST: 40000, // € base cost
-  SCADA_PER_MW: 8000, // € per MW additional
+  // Monitoring & Control - standard systems
+  SCADA_BASE_COST: 30000, // € base cost
+  SCADA_PER_MW: 6000, // € per MW additional
 
-  // Site Infrastructure
-  FENCING_UNIT_PRICE: 65, // €/m for perimeter fencing
+  // Site Infrastructure - efficient design
+  FENCING_UNIT_PRICE: 50, // €/m for perimeter fencing
   FENCING_METERS_PER_HECTARE: 400, // m of fencing per hectare
   HECTARES_PER_MW: 2, // hectares per MW for ground mount
-  ACCESS_ROADS_PER_MW: 15000, // € per MW for access roads
+  ACCESS_ROADS_PER_MW: 11000, // € per MW for access roads
 
-  // Construction & Services
-  LABOR_INSTALLATION_PER_KW: 125, // €/kW for installation labor
-  PROJECT_MANAGEMENT_PER_MW: 25000, // € per MW
-  ENGINEERING_DESIGN_PER_MW: 25000, // € per MW
+  // Construction & Services - competitive labor rates
+  LABOR_INSTALLATION_PER_KW: 90, // €/kW for installation labor
+  PROJECT_MANAGEMENT_PER_MW: 18000, // € per MW
+  ENGINEERING_DESIGN_PER_MW: 18000, // € per MW
 
-  // OPEX (Annual Costs)
-  PREVENTIVE_MAINTENANCE_PER_MW_YEAR: 18000, // €/MW/year
-  MODULE_CLEANING_PER_MW_YEAR: 6500, // €/MW/year (2-3x cleaning)
-  ASSET_MANAGEMENT_PER_MW_YEAR: 4000, // €/MW/year
-  INSURANCE_PERCENT_OF_CAPEX: 0.004, // 0.4% of CAPEX per year
-  LAND_LEASE_PER_MW_YEAR: 3500, // €/MW/year
-  SCADA_MAINTENANCE_PER_MW_YEAR: 2500, // €/MW/year
-  GRID_CONNECTION_FEE_PER_MW_YEAR: 1500, // €/MW/year
-  LEGAL_COMPLIANCE_PER_MW_YEAR: 1500, // €/MW/year
+  // OPEX (Annual Costs) - efficient operations
+  PREVENTIVE_MAINTENANCE_PER_MW_YEAR: 12500, // €/MW/year
+  MODULE_CLEANING_PER_MW_YEAR: 4500, // €/MW/year (2-3x cleaning)
+  ASSET_MANAGEMENT_PER_MW_YEAR: 2800, // €/MW/year
+  INSURANCE_PERCENT_OF_CAPEX: 0.003, // 0.3% of CAPEX per year
+  LAND_LEASE_PER_MW_YEAR: 2400, // €/MW/year
+  SCADA_MAINTENANCE_PER_MW_YEAR: 1700, // €/MW/year
+  GRID_CONNECTION_FEE_PER_MW_YEAR: 1000, // €/MW/year
+  LEGAL_COMPLIANCE_PER_MW_YEAR: 1000, // €/MW/year
 };
 
 // DC/AC ratio for inverter sizing
@@ -170,25 +170,21 @@ export const generateCapexItems = (capacityMW: number): CostLineItem[] => {
   // MOUNTING & INSTALLATION
   // ------------------------------------------------------------------------
 
-  // Mounting structure/substructure
-  const mountingQuantity = capacityKW;
-  const mountingUnitPrice = PRICING.MOUNTING_STRUCTURE_PER_KW;
+  // Mounting structure/substructure (quantity in MW for cleaner display)
   items.push(
     createCapexItem(
       'Mounting structure/substructure',
-      mountingQuantity,
-      mountingUnitPrice
+      capacityMW,
+      PRICING.MOUNTING_STRUCTURE_PER_KW * 1000 // Convert to per-MW pricing
     )
   );
 
-  // Complete installation works
-  const installationQuantity = capacityKW;
-  const installationUnitPrice = PRICING.LABOR_INSTALLATION_PER_KW;
+  // Complete installation works (quantity in MW for cleaner display)
   items.push(
     createCapexItem(
       'Complete installation works',
-      installationQuantity,
-      installationUnitPrice
+      capacityMW,
+      PRICING.LABOR_INSTALLATION_PER_KW * 1000 // Convert to per-MW pricing
     )
   );
 
@@ -278,7 +274,7 @@ export const generateCapexItems = (capacityMW: number): CostLineItem[] => {
     createCapexItem(
       'General earthworks & leveling',
       capacityMW,
-      20000 // €20k per MW for earthworks
+      14000 // €14k per MW for earthworks
     )
   );
 
