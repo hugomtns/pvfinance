@@ -145,6 +145,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
           opexItems={opexItems}
           onCapexItemsChange={setCapexItems}
           onOpexItemsChange={setOpexItems}
+          capacity={inputs.capacity}
         />
       </div>
 

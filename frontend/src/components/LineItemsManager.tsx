@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CostLineItem } from '../types';
 import { CapexAutocomplete } from './CapexAutocomplete';
 import { OpexAutocomplete } from './OpexAutocomplete';
+import { generateCapexItems, generateOpexItems } from '../utils/designGenerator';
 import '../styles/LineItems.css';
 
 interface LineItemsManagerProps {
@@ -11,6 +12,7 @@ interface LineItemsManagerProps {
   opexItems: CostLineItem[];
   onCapexItemsChange: (items: CostLineItem[]) => void;
   onOpexItemsChange: (items: CostLineItem[]) => void;
+  capacity: number; // System capacity in MW
 }
 
 export function LineItemsManager({
@@ -20,11 +22,13 @@ export function LineItemsManager({
   opexItems,
   onCapexItemsChange,
   onOpexItemsChange,
+  capacity,
 }: LineItemsManagerProps) {
   const [activeTab, setActiveTab] = useState<'capex' | 'opex'>('capex');
   const [newItemName, setNewItemName] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const handleTabChange = (tab: 'capex' | 'opex') => {
     setActiveTab(tab);
@@ -90,6 +94,38 @@ export function LineItemsManager({
   const handleDeleteItem = (index: number) => {
     const updatedItems = currentItems.filter((_, i) => i !== index);
     setCurrentItems(updatedItems);
+  };
+
+  const handleFillFromDesign = () => {
+    if (capacity <= 0) {
+      alert('Please enter a valid system capacity (MW) before using Fill from Design.');
+      return;
+    }
+
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmFill = () => {
+    setShowConfirmDialog(false);
+
+    // Generate items based on capacity
+    if (isCapexTab) {
+      const generatedItems = generateCapexItems(capacity);
+      onCapexItemsChange(generatedItems);
+    } else {
+      const generatedItems = generateOpexItems(capacity);
+      onOpexItemsChange(generatedItems);
+    }
+
+    // Clear form fields
+    setNewItemName('');
+    setNewItemAmount('');
+    setNewItemQuantity('');
+  };
+
+  const handleCancelFill = () => {
+    setShowConfirmDialog(false);
   };
 
   const formatCurrency = (value: number): string => {
@@ -181,6 +217,33 @@ export function LineItemsManager({
                 No {isCapexTab ? 'CapEx' : 'OpEx'} items added yet. Add your first item below.
               </div>
             )}
+          </div>
+
+          <div style={{
+            marginTop: 'var(--spacing-lg)',
+            marginBottom: 'var(--spacing-md)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 'var(--spacing-sm)'
+          }}>
+            <button
+              onClick={handleFillFromDesign}
+              disabled={capacity <= 0}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: capacity > 0 ? '#10b981' : '#94a3b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: capacity > 0 ? 'pointer' : 'not-allowed',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                transition: 'background-color 0.2s ease'
+              }}
+              title={capacity <= 0 ? 'Please enter a valid capacity first' : `Generate ${isCapexTab ? 'CapEx' : 'OpEx'} items based on system capacity`}
+            >
+              Fill from Design
+            </button>
           </div>
 
           <div style={{ marginTop: 'var(--spacing-lg)', marginBottom: 'var(--spacing-sm)' }}>
@@ -275,6 +338,90 @@ export function LineItemsManager({
               Note: OpEx escalation rate is set in Economic Parameters and applied to all OpEx items.
             </div>
           )}
+        </div>
+      )}
+
+      {showConfirmDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'var(--color-bg)',
+            padding: 'var(--spacing-xl)',
+            borderRadius: 'var(--border-radius)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <h3 style={{
+              marginTop: 0,
+              marginBottom: 'var(--spacing-md)',
+              color: 'var(--color-text)'
+            }}>
+              Fill {isCapexTab ? 'CapEx' : 'OpEx'} from Design
+            </h3>
+            <p style={{
+              marginBottom: 'var(--spacing-lg)',
+              color: 'var(--color-text-secondary)',
+              lineHeight: 1.5
+            }}>
+              This will replace all existing {isCapexTab ? 'CapEx' : 'OpEx'} items with a comprehensive list
+              of {isCapexTab ? '15' : '8'} essential line items for a ground-mounted {capacity} MW PV system.
+            </p>
+            <p style={{
+              marginBottom: 'var(--spacing-lg)',
+              color: 'var(--color-warning)',
+              fontSize: '0.875rem',
+              fontWeight: 500
+            }}>
+              Warning: This action cannot be undone.
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: 'var(--spacing-md)',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={handleCancelFill}
+                style={{
+                  padding: '0.5rem 1.5rem',
+                  backgroundColor: 'var(--color-secondary)',
+                  color: 'var(--color-text)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--border-radius)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmFill}
+                style={{
+                  padding: '0.5rem 1.5rem',
+                  backgroundColor: 'var(--color-primary)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--border-radius)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500
+                }}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
