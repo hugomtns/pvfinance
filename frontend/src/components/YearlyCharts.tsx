@@ -53,6 +53,10 @@ export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: 
     taxes: -(data.ebitda[index] - data.cfads[index]), // Negative for waterfall (EBITDA - CFADS = Tax)
     fcfToEquity: data.fcf_to_equity[index],
     cumulativeFCF: data.cumulative_fcf_to_equity[index],
+    // Mark the break-even point for highlighting
+    isBreakeven: equityPaybackYears !== null && equityPaybackYears !== undefined
+      ? Math.abs(year - equityPaybackYears) < 0.6  // Highlight year closest to payback
+      : false
   }));
 
   return (
@@ -61,7 +65,7 @@ export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: 
       <div className="chart-section">
         <h4>Cumulative Free Cash Flow to Equity</h4>
         <ResponsiveContainer width="100%" height={350}>
-          <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
             <defs>
               <linearGradient id="colorFCF" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
@@ -75,7 +79,7 @@ export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: 
               stroke="#6b7280"
             />
             <YAxis
-              label={{ value: 'Cumulative Cash Flow (€)', angle: -90, position: 'insideLeft' }}
+              label={{ value: 'Cumulative Cash Flow (€)', angle: -90, position: 'insideLeft', offset: 10 }}
               tickFormatter={formatCurrency}
               stroke="#6b7280"
             />
@@ -107,6 +111,23 @@ export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: 
               fillOpacity={1}
               fill="url(#colorFCF)"
               name="Cumulative FCF to Equity"
+              dot={(props: any) => {
+                const { cx, cy, payload } = props;
+                if (payload.isBreakeven) {
+                  return (
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={8}
+                      fill="#dc2626"
+                      stroke="#ffffff"
+                      strokeWidth={2}
+                    />
+                  );
+                }
+                return null;
+              }}
+              activeDot={{ r: 6 }}
             />
           </AreaChart>
         </ResponsiveContainer>
