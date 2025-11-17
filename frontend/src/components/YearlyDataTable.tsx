@@ -1,8 +1,10 @@
-import type { YearlyData } from '../types';
+import type { YearlyData, MonthlyDataPoint } from '../types';
 import '../styles/YearlyData.css';
 
 interface YearlyDataTableProps {
   data: YearlyData;
+  monthlyData?: MonthlyDataPoint[];
+  mode?: 'yearly' | 'monthly';
 }
 
 const formatCurrency = (value: number): string => {
@@ -21,7 +23,67 @@ const formatNumber = (value: number, decimals = 0): string => {
   }).format(value);
 };
 
-export function YearlyDataTable({ data }: YearlyDataTableProps) {
+export function YearlyDataTable({ data, monthlyData, mode = 'yearly' }: YearlyDataTableProps) {
+  // Group monthly data by year for better organization
+  const groupedMonthlyData = monthlyData?.reduce((acc, point) => {
+    if (!acc[point.year]) {
+      acc[point.year] = [];
+    }
+    acc[point.year].push(point);
+    return acc;
+  }, {} as Record<number, MonthlyDataPoint[]>);
+
+  if (mode === 'monthly' && monthlyData && groupedMonthlyData) {
+    return (
+      <div className="yearly-table-container">
+        <table className="yearly-table monthly-table">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th title="Megawatt-hour: A unit of energy (production), equal to 1,000 kilowatt-hours (kWh).">Energy (MWh)</th>
+              <th>Revenue (€)</th>
+              <th title="Operations and Maintenance: The ongoing activities required to keep the solar farm running efficiently.">O&M Costs (€)</th>
+              <th title="EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization): Operating profit before financing costs and accounting adjustments. Calculated as Revenue - O&M Costs.">EBITDA (€)</th>
+              <th title="CFADS (Cash Flow Available for Debt Service): Operating cash flow after taxes but before debt service. This is the cash available to pay lenders and equity investors. Calculated as EBITDA - Taxes.">CFADS (€)</th>
+              <th>Debt Service (€)</th>
+              <th title="FCF to Equity (Free Cash Flow to Equity): The cash available to equity investors after all operating costs, taxes, and debt service are paid. Calculated as CFADS - Debt Service.">FCF to Equity (€)</th>
+              <th>Cumulative FCF (€)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(groupedMonthlyData).map(([year, months]) => (
+              <>
+                {/* Year header row */}
+                <tr key={`year-${year}`} className="year-header-row">
+                  <td colSpan={9} className="year-header-cell">
+                    <strong>Year {year}</strong>
+                  </td>
+                </tr>
+                {/* Monthly data rows */}
+                {months.map((point, monthIndex) => (
+                  <tr key={`${year}-${point.month}`} className={monthIndex % 2 === 0 ? 'even' : 'odd'}>
+                    <td className="month-cell">{point.month_name}</td>
+                    <td className="number-cell">{formatNumber(point.energy_production_mwh, 0)}</td>
+                    <td className="currency-cell">{formatCurrency(point.revenue)}</td>
+                    <td className="currency-cell">{formatCurrency(point.om_costs)}</td>
+                    <td className="currency-cell">{formatCurrency(point.ebitda)}</td>
+                    <td className="currency-cell">{formatCurrency(point.cfads)}</td>
+                    <td className="currency-cell">{formatCurrency(point.debt_service)}</td>
+                    <td className="currency-cell">{formatCurrency(point.fcf_to_equity)}</td>
+                    <td className={`currency-cell ${point.cumulative_fcf_to_equity >= 0 ? 'positive' : 'negative'}`}>
+                      {formatCurrency(point.cumulative_fcf_to_equity)}
+                    </td>
+                  </tr>
+                ))}
+              </>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // Default to yearly view
   return (
     <div className="yearly-table-container">
       <table className="yearly-table">

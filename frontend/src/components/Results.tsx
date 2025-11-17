@@ -44,8 +44,9 @@ export function Results({ results }: ResultsProps) {
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [showYearlyTable, setShowYearlyTable] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('summary');
+  const [showCashFlowAnalysis, setShowCashFlowAnalysis] = useState(true);
+  const [cashFlowViewMode, setCashFlowViewMode] = useState<'yearly' | 'monthly'>('yearly');
 
   // Debug: Check if yearly_data and monthly_data exist
   console.log('Results received, yearly_data exists:', !!yearly_data);
@@ -304,42 +305,74 @@ export function Results({ results }: ResultsProps) {
         </div>
       </div>
 
-      {/* Cash Flow Charts */}
-      {results.yearly_data && (
-        <div className="results-section">
-          <h3>Cash Flow Analysis</h3>
-          <YearlyCharts
-            data={results.yearly_data}
-            equityPaybackYears={key_metrics.equity_payback_years}
-            projectPaybackYears={key_metrics.project_payback_years}
-          />
-        </div>
-      )}
-
-      {/* Yearly Projections Table */}
+      {/* Cash Flow Analysis - Collapsible with Yearly/Monthly Toggle */}
       {results.yearly_data && (
         <div className="results-section collapsible-section">
           <div
             className="collapsible-header"
-            onClick={() => setShowYearlyTable(!showYearlyTable)}
+            onClick={() => setShowCashFlowAnalysis(!showCashFlowAnalysis)}
           >
-            <h3>Yearly Financial Projections</h3>
+            <h3>Cash Flow Analysis</h3>
             <div className="collapsible-toggle">
-              <span>{showYearlyTable ? 'Hide' : 'Show'} Table</span>
-              <span className={`collapsible-toggle-icon ${showYearlyTable ? 'expanded' : ''}`}>
+              <span>{showCashFlowAnalysis ? 'Hide' : 'Show'}</span>
+              <span className={`collapsible-toggle-icon ${showCashFlowAnalysis ? 'expanded' : ''}`}>
                 ▼
               </span>
             </div>
           </div>
-          <div className={`collapsible-content ${showYearlyTable ? 'expanded' : ''}`}>
-            {showYearlyTable && (
+          <div className={`collapsible-content ${showCashFlowAnalysis ? 'expanded' : ''}`}>
+            {showCashFlowAnalysis && (
               <div className="collapsible-content-inner">
-                <YearlyDataTable data={results.yearly_data} />
+                {/* Toggle Switch for Yearly/Monthly View */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  marginBottom: 'var(--spacing-md)',
+                  gap: '0.5rem'
+                }}>
+                  <button
+                    className={`btn ${cashFlowViewMode === 'yearly' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setCashFlowViewMode('yearly')}
+                    style={{ padding: '0.5rem 1.5rem' }}
+                  >
+                    Yearly
+                  </button>
+                  <button
+                    className={`btn ${cashFlowViewMode === 'monthly' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setCashFlowViewMode('monthly')}
+                    disabled={!results.monthly_data}
+                    style={{ padding: '0.5rem 1.5rem' }}
+                  >
+                    Monthly
+                  </button>
+                </div>
+
+                {/* Chart */}
+                <YearlyCharts
+                  data={results.yearly_data}
+                  monthlyData={results.monthly_data}
+                  mode={cashFlowViewMode}
+                  equityPaybackYears={key_metrics.equity_payback_years}
+                  projectPaybackYears={key_metrics.project_payback_years}
+                />
+
+                {/* Table */}
+                <div style={{ marginTop: 'var(--spacing-lg)' }}>
+                  <h4 style={{ marginBottom: 'var(--spacing-md)' }}>
+                    {cashFlowViewMode === 'yearly' ? 'Yearly' : 'Monthly'} Financial Projections
+                  </h4>
+                  <YearlyDataTable
+                    data={results.yearly_data}
+                    monthlyData={results.monthly_data}
+                    mode={cashFlowViewMode}
+                  />
+                </div>
               </div>
             )}
           </div>
         </div>
       )}
+
 
       {/* Assessment */}
       <div className="results-section">

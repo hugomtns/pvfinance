@@ -13,11 +13,13 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import type { YearlyData } from '../types';
+import type { YearlyData, MonthlyDataPoint } from '../types';
 import '../styles/YearlyData.css';
 
 interface YearlyChartsProps {
   data: YearlyData;
+  monthlyData?: MonthlyDataPoint[];
+  mode?: 'yearly' | 'monthly';
   equityPaybackYears?: number | null;
   projectPaybackYears?: number | null;
 }
@@ -42,22 +44,55 @@ const formatNumber = (value: number): string => {
   }).format(value);
 };
 
-export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: YearlyChartsProps) {
-  // Transform data for charts
-  const chartData = data.years.map((year, index) => ({
-    year,
-    energy: Math.round(data.energy_production_mwh[index]),
-    revenue: data.revenue[index],
-    omCosts: -Math.abs(data.om_costs[index]), // Negative for waterfall
-    debtService: -Math.abs(data.debt_service[index]), // Negative for waterfall
-    taxes: -(data.ebitda[index] - data.cfads[index]), // Negative for waterfall (EBITDA - CFADS = Tax)
-    fcfToEquity: data.fcf_to_equity[index],
-    cumulativeFCF: data.cumulative_fcf_to_equity[index],
-    // Mark the break-even point for highlighting
-    isBreakeven: equityPaybackYears !== null && equityPaybackYears !== undefined
-      ? Math.abs(year - equityPaybackYears) < 0.6  // Highlight year closest to payback
-      : false
-  }));
+export function YearlyCharts({
+  data,
+  monthlyData,
+  mode = 'yearly',
+  equityPaybackYears,
+  projectPaybackYears
+}: YearlyChartsProps) {
+  // Transform data for charts based on mode
+  const chartData = mode === 'monthly' && monthlyData
+    ? monthlyData.map((point, index) => {
+        const periodLabel = `Y${point.year}M${point.month}`;
+        const isYearBoundary = point.month === 1;
+
+        // Calculate position for break-even marker (in months)
+        const monthPosition = (point.year - 1) * 12 + point.month;
+        const breakEvenMonth = equityPaybackYears !== null && equityPaybackYears !== undefined
+          ? equityPaybackYears * 12
+          : null;
+
+        return {
+          year: periodLabel,
+          displayLabel: isYearBoundary ? `Y${point.year}` : '',
+          isYearBoundary,
+          energy: Math.round(point.energy_production_mwh),
+          revenue: point.revenue,
+          omCosts: -Math.abs(point.om_costs),
+          debtService: -Math.abs(point.debt_service),
+          fcfToEquity: point.fcf_to_equity,
+          cumulativeFCF: point.cumulative_fcf_to_equity,
+          isBreakeven: breakEvenMonth !== null
+            ? Math.abs(monthPosition - breakEvenMonth) < 1
+            : false
+        };
+      })
+    : data.years.map((year, index) => ({
+        year,
+        displayLabel: year.toString(),
+        isYearBoundary: true,
+        energy: Math.round(data.energy_production_mwh[index]),
+        revenue: data.revenue[index],
+        omCosts: -Math.abs(data.om_costs[index]),
+        debtService: -Math.abs(data.debt_service[index]),
+        taxes: -(data.ebitda[index] - data.cfads[index]),
+        fcfToEquity: data.fcf_to_equity[index],
+        cumulativeFCF: data.cumulative_fcf_to_equity[index],
+        isBreakeven: equityPaybackYears !== null && equityPaybackYears !== undefined
+          ? Math.abs(year - equityPaybackYears) < 0.6
+          : false
+      }));
 
   return (
     <div className="yearly-charts-container">
@@ -75,8 +110,25 @@ export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: 
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="year"
-              label={{ value: 'Year', position: 'insideBottom', offset: -5 }}
+              label={{
+                value: mode === 'monthly' ? 'Time (Years)' : 'Year',
+                position: 'insideBottom',
+                offset: -5
+              }}
               stroke="#6b7280"
+              tick={(props: any) => {
+                const { x, y, payload } = props;
+                const dataPoint = chartData[payload.index];
+                // Only show labels at year boundaries for monthly mode
+                if (mode === 'monthly' && !dataPoint?.isYearBoundary) {
+                  return null;
+                }
+                return (
+                  <text x={x} y={y + 10} textAnchor="middle" fill="#6b7280" fontSize={12}>
+                    {dataPoint?.displayLabel || payload.value}
+                  </text>
+                );
+              }}
             />
             <YAxis
               label={{ value: 'Cumulative Cash Flow (€)', angle: -90, position: 'insideLeft', dx: -30 }}
@@ -88,7 +140,7 @@ export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: 
               contentStyle={{ backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px' }}
             />
             <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="3 3" />
-            {equityPaybackYears !== null && equityPaybackYears !== undefined && (
+            {equityPaybackYears !== null && equityPaybackYears !== undefined && mode === 'yearly' && (
               <ReferenceLine
                 x={equityPaybackYears}
                 stroke="#dc2626"
@@ -132,10 +184,12 @@ export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: 
           </AreaChart>
         </ResponsiveContainer>
         <p className="chart-caption">
-          Cumulative cash flow to equity investors over project lifetime.
+          {mode === 'monthly' ? 'Monthly' : 'Yearly'} cumulative cash flow to equity investors over project lifetime.
           {equityPaybackYears !== null && equityPaybackYears !== undefined && (
             <span style={{ fontWeight: 'bold', color: '#dc2626' }}>
-              {' '}Break-even (equity recovered) at year {equityPaybackYears.toFixed(1)}.
+              {' '}Break-even (equity recovered) at {mode === 'monthly'
+                ? `month ${Math.round(equityPaybackYears * 12)} (year ${equityPaybackYears.toFixed(1)})`
+                : `year ${equityPaybackYears.toFixed(1)}`}.
             </span>
           )}
         </p>
