@@ -193,6 +193,16 @@ async def calculate_project(inputs: ProjectInputsRequest):
             import traceback
             traceback.print_exc()
 
+        # Add monthly data
+        try:
+            monthly_data = calculator.generate_monthly_data()
+            print(f"DEBUG: Generated monthly_data with {len(monthly_data)} months")
+            report["monthly_data"] = monthly_data
+        except Exception as e:
+            print(f"ERROR generating monthly_data: {e}")
+            import traceback
+            traceback.print_exc()
+
         # Add audit log
         try:
             audit_log = calculator.generate_calculation_audit_log()
