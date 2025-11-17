@@ -109,6 +109,20 @@ export interface YearlyData {
   cumulative_fcf_to_equity: number[];
 }
 
+export interface MonthlyDataPoint {
+  year: number;
+  month: number;
+  month_name: string;
+  energy_production_mwh: number;
+  revenue: number;
+  om_costs: number;
+  ebitda: number;
+  cfads: number;
+  debt_service: number;
+  fcf_to_equity: number;
+  cumulative_fcf_to_equity: number;
+}
+
 export interface CalculationStep {
   step_number: number;
   name: string;
@@ -147,6 +161,7 @@ export interface ProjectResults {
   assessment: Assessment;
   cost_items_breakdown?: CostItemsBreakdown;
   yearly_data?: YearlyData;
+  monthly_data?: MonthlyDataPoint[];
   audit_log?: AuditLog;
 }
 
