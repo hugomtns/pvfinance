@@ -39,7 +39,7 @@ const getAssessmentClass = (assessment: string): string => {
 };
 
 export function Results({ results }: ResultsProps) {
-  const { project_summary, financing_structure, key_metrics, first_year_operations, assessment, yearly_data } =
+  const { project_summary, financing_structure, key_metrics, first_year_operations, assessment } =
     results;
 
   const [isExporting, setIsExporting] = useState(false);

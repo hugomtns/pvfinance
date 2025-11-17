@@ -1,15 +1,10 @@
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
   AreaChart,
   Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
@@ -35,21 +30,11 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat('en-EU', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-    notation: 'compact',
-    compactDisplay: 'short',
-  }).format(value);
-};
-
 export function YearlyCharts({
   data,
   monthlyData,
   mode = 'yearly',
   equityPaybackYears,
-  projectPaybackYears
 }: YearlyChartsProps) {
   // Calculate the single closest month to break-even for monthly mode
   const breakEvenMonth = equityPaybackYears !== null && equityPaybackYears !== undefined
@@ -58,7 +43,7 @@ export function YearlyCharts({
 
   // Transform data for charts based on mode
   const chartData = mode === 'monthly' && monthlyData
-    ? monthlyData.map((point, index) => {
+    ? monthlyData.map((point) => {
         const periodLabel = `Y${point.year}M${point.month}`;
         const isYearBoundary = point.month === 1;
 
