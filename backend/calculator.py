@@ -298,12 +298,13 @@ class SolarFinanceCalculator:
 
     def calc_Equity_Payback_Period(self) -> float:
         """
-        Calculate equity payback period in years (when cumulative FCF to equity becomes positive)
+        Calculate equity payback period in years (when cumulative FCF to equity recovers initial investment)
         Returns fractional years with linear interpolation for sub-year precision
         Returns None if payback never occurs within project lifetime
         """
-        cumulative_fcf = 0
-        prev_cumulative = 0
+        equity = self.calc_Equity()
+        cumulative_fcf = -equity  # Start with negative equity investment
+        prev_cumulative = cumulative_fcf
 
         for year in range(1, self.inputs.Project_Lifetime + 1):
             fcf = self.calc_FCF_to_Equity_year_t(year)
@@ -436,7 +437,8 @@ class SolarFinanceCalculator:
         fcf_to_equity = []
         debt_service = []
         dscr = []
-        cumulative_fcf = 0
+        equity = self.calc_Equity()
+        cumulative_fcf = -equity  # Start with negative equity investment
         cumulative_fcf_list = []
 
         # Calculate values for each year
