@@ -71,16 +71,21 @@ export function Results({ results }: ResultsProps) {
     setExportError(null);
     setShowExportModal(false);
 
+    const payload = {
+      ...results,
+      export_options: exportOptions,
+    };
+
+    console.log('DEBUG: Sending export options:', exportOptions);
+    console.log('DEBUG: Full payload keys:', Object.keys(payload));
+
     try {
       const response = await fetch('/api/export-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...results,
-          export_options: exportOptions,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

@@ -5,12 +5,16 @@ PDF Report Generator for PV Finance Calculator
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from io import BytesIO
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def format_currency(value: float) -> str:
@@ -67,6 +71,132 @@ class PDFReportGenerator:
             spaceBefore=20
         ))
 
+    def _generate_cumulative_fcf_chart(
+        self,
+        data: List[Dict],
+        mode: str,
+        equity_payback_years: Optional[float] = None
+    ) -> BytesIO:
+        """
+        Generate cumulative FCF chart as an image
+
+        Args:
+            data: List of data points (yearly or monthly)
+            mode: 'yearly' or 'monthly'
+            equity_payback_years: Break-even point in years
+
+        Returns:
+            BytesIO buffer containing the chart image
+        """
+        # Create figure
+        fig, ax = plt.subplots(figsize=(10, 5))
+
+        if mode == 'monthly':
+            # Monthly data
+            x_values = [(d['year'] - 1) * 12 + d['month'] for d in data]
+            y_values = [d['cumulative_fcf_to_equity'] for d in data]
+            x_labels = [f"Y{d['year']}" if d['month'] == 1 else '' for d in data]
+            x_label_text = 'Time (Years)'
+
+            # Calculate break-even month
+            breakeven_x = round(equity_payback_years * 12) if equity_payback_years else None
+        else:
+            # Yearly data
+            x_values = data['years']
+            y_values = data['cumulative_fcf_to_equity']
+            x_labels = [str(y) for y in x_values]
+            x_label_text = 'Year'
+
+            # Find break-even year
+            breakeven_x = None
+            if equity_payback_years is not None:
+                # Find the closest year
+                for i, year in enumerate(x_values):
+                    if abs(year - equity_payback_years) < 0.6:
+                        breakeven_x = year
+                        break
+
+        # Split data into negative and positive segments
+        x_negative, y_negative = [], []
+        x_positive, y_positive = [], []
+
+        for i, (x, y) in enumerate(zip(x_values, y_values)):
+            # Check if this is a transition point
+            prev_y = y_values[i-1] if i > 0 else None
+            next_y = y_values[i+1] if i < len(y_values) - 1 else None
+
+            is_last_negative = y < 0 and next_y is not None and next_y >= 0
+            is_first_positive = y >= 0 and prev_y is not None and prev_y < 0
+
+            # Add to negative dataset
+            if y < 0 or is_first_positive:
+                x_negative.append(x)
+                y_negative.append(y)
+
+            # Add to positive dataset
+            if y >= 0 or is_last_negative:
+                x_positive.append(x)
+                y_positive.append(y)
+
+        # Plot negative area (red)
+        if x_negative:
+            ax.fill_between(x_negative, y_negative, 0, alpha=0.3, color='#ef4444', label='Negative FCF')
+            ax.plot(x_negative, y_negative, color='#ef4444', linewidth=2)
+
+        # Plot positive area (green)
+        if x_positive:
+            ax.fill_between(x_positive, y_positive, 0, alpha=0.3, color='#10b981', label='Positive FCF')
+            ax.plot(x_positive, y_positive, color='#10b981', linewidth=2)
+
+        # Mark break-even point (blue)
+        if breakeven_x is not None:
+            try:
+                idx = x_values.index(breakeven_x)
+                ax.plot(breakeven_x, y_values[idx], 'o', color='#3b82f6', markersize=10,
+                       markeredgecolor='white', markeredgewidth=2, label='Break-even', zorder=5)
+            except ValueError:
+                pass
+
+        # Add zero reference line
+        ax.axhline(y=0, color='#9ca3af', linestyle='--', linewidth=1, alpha=0.7)
+
+        # Styling
+        ax.set_xlabel(x_label_text, fontsize=11, fontweight='bold')
+        ax.set_ylabel('Cumulative Cash Flow (€)', fontsize=11, fontweight='bold')
+        ax.set_title('Cumulative Free Cash Flow to Equity', fontsize=13, fontweight='bold', pad=15)
+
+        # Format y-axis as currency
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'€{x/1e6:.1f}M' if abs(x) >= 1e6 else f'€{x/1e3:.0f}K'))
+
+        # X-axis formatting
+        if mode == 'monthly':
+            # Show only year labels (every 12 months)
+            tick_positions = [i for i, label in enumerate(x_labels) if label]
+            tick_labels = [x_labels[i] for i in tick_positions]
+            ax.set_xticks([x_values[i] for i in tick_positions])
+            ax.set_xticklabels(tick_labels)
+        else:
+            # For yearly, show every 5 years
+            ax.set_xticks([x for i, x in enumerate(x_values) if i % 5 == 0 or i == len(x_values) - 1])
+
+        # Grid
+        ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
+        ax.set_axisbelow(True)
+
+        # Legend
+        ax.legend(loc='best', framealpha=0.9)
+
+        # Tight layout
+        plt.tight_layout()
+
+        # Save to buffer
+        buffer = BytesIO()
+        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        buffer.seek(0)
+        plt.close(fig)
+
+        return buffer
+
     def generate_report(self, report_data: Dict[str, Any]) -> BytesIO:
         """Generate PDF report from project data"""
         buffer = BytesIO()
@@ -81,6 +211,10 @@ class PDFReportGenerator:
             'includeMonthlyChart': False,
             'includeMonthlyTable': False,
         })
+
+        print(f"DEBUG: Export options received: {export_options}")
+        print(f"DEBUG: Include Yearly Table: {export_options.get('includeYearlyTable', True)}")
+        print(f"DEBUG: Include Monthly Table: {export_options.get('includeMonthlyTable', False)}")
 
         # Container for the 'Flowable' objects
         elements = []
@@ -257,9 +391,92 @@ class PDFReportGenerator:
                 elements.append(opex_table)
                 elements.append(Spacer(1, 0.2 * inch))
 
-        # Yearly Financial Projections (if available and requested)
+        # Get data for charts
         yearly_data = report_data.get('yearly_data')
-        if yearly_data and export_options.get('includeYearlyTable', True):
+        monthly_data = report_data.get('monthly_data')
+        key_metrics = report_data.get('key_metrics', {})
+        equity_payback_years = key_metrics.get('equity_payback_years')
+
+        # Add Yearly Chart (if requested)
+        if yearly_data and export_options.get('includeYearlyChart', False):
+            elements.append(PageBreak())
+            elements.append(Paragraph("Cash Flow Analysis - Yearly", self.styles['SectionHeader']))
+
+            try:
+                chart_buffer = self._generate_cumulative_fcf_chart(
+                    data=yearly_data,
+                    mode='yearly',
+                    equity_payback_years=equity_payback_years
+                )
+                chart_img = Image(chart_buffer, width=6.5*inch, height=3.25*inch)
+                elements.append(chart_img)
+                elements.append(Spacer(1, 0.2 * inch))
+
+                # Add caption
+                if equity_payback_years is not None:
+                    caption_text = f"Yearly cumulative cash flow to equity investors over project lifetime. Break-even (equity recovered) at year {equity_payback_years:.1f}."
+                else:
+                    caption_text = "Yearly cumulative cash flow to equity investors over project lifetime."
+
+                caption_style = ParagraphStyle(
+                    name='ChartCaption',
+                    parent=self.styles['Normal'],
+                    fontSize=9,
+                    textColor=colors.grey,
+                    alignment=TA_CENTER
+                )
+                elements.append(Paragraph(caption_text, caption_style))
+                elements.append(Spacer(1, 0.3 * inch))
+            except Exception as e:
+                print(f"ERROR generating yearly chart: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Add Monthly Chart (if requested)
+        if monthly_data and export_options.get('includeMonthlyChart', False):
+            if not export_options.get('includeYearlyChart', False):
+                elements.append(PageBreak())
+
+            elements.append(Paragraph("Cash Flow Analysis - Monthly", self.styles['SectionHeader']))
+
+            try:
+                chart_buffer = self._generate_cumulative_fcf_chart(
+                    data=monthly_data,
+                    mode='monthly',
+                    equity_payback_years=equity_payback_years
+                )
+                chart_img = Image(chart_buffer, width=6.5*inch, height=3.25*inch)
+                elements.append(chart_img)
+                elements.append(Spacer(1, 0.2 * inch))
+
+                # Add caption
+                if equity_payback_years is not None:
+                    breakeven_month = round(equity_payback_years * 12)
+                    caption_text = f"Monthly cumulative cash flow to equity investors over project lifetime. Break-even (equity recovered) at month {breakeven_month} (year {equity_payback_years:.1f})."
+                else:
+                    caption_text = "Monthly cumulative cash flow to equity investors over project lifetime."
+
+                caption_style = ParagraphStyle(
+                    name='ChartCaption',
+                    parent=self.styles['Normal'],
+                    fontSize=9,
+                    textColor=colors.grey,
+                    alignment=TA_CENTER
+                )
+                elements.append(Paragraph(caption_text, caption_style))
+                elements.append(Spacer(1, 0.3 * inch))
+            except Exception as e:
+                print(f"ERROR generating monthly chart: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Yearly Financial Projections (if available and requested)
+        include_yearly_table = export_options.get('includeYearlyTable', True)
+        print(f"DEBUG PDF: yearly_data exists: {bool(yearly_data)}")
+        print(f"DEBUG PDF: include_yearly_table: {include_yearly_table}")
+        print(f"DEBUG PDF: Will include yearly table: {bool(yearly_data and include_yearly_table)}")
+
+        if yearly_data and include_yearly_table:
             elements.append(PageBreak())
             elements.append(Paragraph("Yearly Financial Projections", self.styles['SectionHeader']))
 

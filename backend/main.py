@@ -263,6 +263,11 @@ async def export_pdf(report_data: Dict):
     Accepts the full calculation results and generates a downloadable PDF report
     """
     try:
+        print(f"DEBUG MAIN: Received export request")
+        print(f"DEBUG MAIN: Report data keys: {list(report_data.keys())}")
+        export_options = report_data.get('export_options')
+        print(f"DEBUG MAIN: Export options: {export_options}")
+
         # Generate PDF
         pdf_generator = PDFReportGenerator()
         pdf_buffer = pdf_generator.generate_report(report_data)
