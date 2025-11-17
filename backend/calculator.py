@@ -173,13 +173,61 @@ class SolarFinanceCalculator:
     def calc_FCF_to_Equity_year_t(self, year: int) -> float:
         """13. FCF to Equity = CFADS - Debt Service (if year <= Tenor) else CFADS"""
         cfads = self.calc_CFADS_year_t(year)
-        
+
         if year <= self.inputs.Debt_Tenor:
             annual_ds = self.calc_Annual_Debt_Service()
             return cfads - annual_ds
         else:
             return cfads
-    
+
+    # =================================================================
+    # MONTHLY CALCULATIONS
+    # =================================================================
+
+    def calc_Energy_month_t(self, year: int, month: int) -> float:
+        """Calculate monthly energy production by distributing annual energy evenly across 12 months"""
+        annual_energy = self.calc_Energy_year_t(year)
+        return annual_energy / 12
+
+    def calc_Revenue_month_t(self, year: int, month: int) -> float:
+        """Calculate monthly revenue based on monthly energy production"""
+        monthly_energy = self.calc_Energy_month_t(year, month)
+        ppa_price = self.inputs.PPA_Price * (1 + self.inputs.PPA_Escalation) ** (year - 1)
+        return monthly_energy * ppa_price
+
+    def calc_OM_month_t(self, year: int, month: int) -> float:
+        """Calculate monthly O&M costs by distributing annual O&M evenly across 12 months"""
+        annual_om = self.calc_OM_year_t(year)
+        return annual_om / 12
+
+    def calc_EBITDA_month_t(self, year: int, month: int) -> float:
+        """Calculate monthly EBITDA"""
+        revenue = self.calc_Revenue_month_t(year, month)
+        om = self.calc_OM_month_t(year, month)
+        return revenue - om
+
+    def calc_CFADS_month_t(self, year: int, month: int) -> float:
+        """Calculate monthly CFADS"""
+        ebitda = self.calc_EBITDA_month_t(year, month)
+        return ebitda * (1 - self.inputs.Tax_Rate)
+
+    def calc_Debt_Service_month_t(self, year: int, month: int) -> float:
+        """Calculate monthly debt service by distributing annual debt service evenly"""
+        if year > self.inputs.Debt_Tenor:
+            return 0
+        annual_ds = self.calc_Annual_Debt_Service()
+        return annual_ds / 12
+
+    def calc_FCF_to_Equity_month_t(self, year: int, month: int) -> float:
+        """Calculate monthly FCF to equity"""
+        cfads = self.calc_CFADS_month_t(year, month)
+        debt_service = self.calc_Debt_Service_month_t(year, month)
+        return cfads - debt_service
+
+    # =================================================================
+    # NET PRESENT VALUE CALCULATIONS
+    # =================================================================
+
     def calc_NPV_of_Costs(self) -> float:
         """14. NPV of Costs = Total_CapEx + Sum of discounted OM"""
         total_capex = self.calc_Total_CapEx()
@@ -483,6 +531,47 @@ class SolarFinanceCalculator:
             "dscr": dscr,
             "cumulative_fcf_to_equity": cumulative_fcf_list
         }
+
+    def generate_monthly_data(self) -> List[Dict]:
+        """Generate month-by-month data for all operational metrics across project lifetime"""
+        monthly_data = []
+        equity = self.calc_Equity()
+        cumulative_fcf = -equity  # Start with negative equity investment
+
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+        # Generate data for each year and month
+        for year in range(1, self.inputs.Project_Lifetime + 1):
+            for month in range(1, 13):
+                # Calculate monthly metrics
+                energy = self.calc_Energy_month_t(year, month)
+                rev = self.calc_Revenue_month_t(year, month)
+                om = self.calc_OM_month_t(year, month)
+                ebit = self.calc_EBITDA_month_t(year, month)
+                cf = self.calc_CFADS_month_t(year, month)
+                ds = self.calc_Debt_Service_month_t(year, month)
+                fcf = self.calc_FCF_to_Equity_month_t(year, month)
+
+                # Update cumulative FCF
+                cumulative_fcf += fcf
+
+                # Create monthly data point
+                monthly_data.append({
+                    "year": year,
+                    "month": month,
+                    "month_name": month_names[month - 1],
+                    "energy_production_mwh": energy,
+                    "revenue": rev,
+                    "om_costs": om,
+                    "ebitda": ebit,
+                    "cfads": cf,
+                    "debt_service": ds,
+                    "fcf_to_equity": fcf,
+                    "cumulative_fcf_to_equity": cumulative_fcf
+                })
+
+        return monthly_data
 
     def generate_calculation_audit_log(self) -> Dict:
         """

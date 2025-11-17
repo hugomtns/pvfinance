@@ -400,5 +400,119 @@ def test_payback_included_in_summary_report(default_inputs):
     assert report["key_metrics"]["project_payback_years"] > 0
 
 
+def test_monthly_energy_sums_to_yearly(default_inputs):
+    """Test that monthly energy production sums to yearly total"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    # Test for year 1
+    year = 1
+    yearly_energy = calc.calc_Energy_year_t(year)
+    monthly_energy_sum = sum(calc.calc_Energy_month_t(year, month) for month in range(1, 13))
+
+    # Monthly sum should equal yearly total
+    assert abs(monthly_energy_sum - yearly_energy) < 1
+
+
+def test_monthly_revenue_sums_to_yearly(default_inputs):
+    """Test that monthly revenue sums to yearly total"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    # Test for year 5
+    year = 5
+    yearly_revenue = calc.calc_Revenue_year_t(year)
+    monthly_revenue_sum = sum(calc.calc_Revenue_month_t(year, month) for month in range(1, 13))
+
+    # Monthly sum should equal yearly total
+    assert abs(monthly_revenue_sum - yearly_revenue) < 1
+
+
+def test_monthly_om_sums_to_yearly(default_inputs):
+    """Test that monthly O&M costs sum to yearly total"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    # Test for year 10
+    year = 10
+    yearly_om = calc.calc_OM_year_t(year)
+    monthly_om_sum = sum(calc.calc_OM_month_t(year, month) for month in range(1, 13))
+
+    # Monthly sum should equal yearly total
+    assert abs(monthly_om_sum - yearly_om) < 1
+
+
+def test_monthly_cfads_sums_to_yearly(default_inputs):
+    """Test that monthly CFADS sums to yearly total"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    # Test for year 7
+    year = 7
+    yearly_cfads = calc.calc_CFADS_year_t(year)
+    monthly_cfads_sum = sum(calc.calc_CFADS_month_t(year, month) for month in range(1, 13))
+
+    # Monthly sum should equal yearly total
+    assert abs(monthly_cfads_sum - yearly_cfads) < 1
+
+
+def test_monthly_fcf_sums_to_yearly(default_inputs):
+    """Test that monthly FCF to equity sums to yearly total"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    # Test for year during debt tenor
+    year = 10
+    yearly_fcf = calc.calc_FCF_to_Equity_year_t(year)
+    monthly_fcf_sum = sum(calc.calc_FCF_to_Equity_month_t(year, month) for month in range(1, 13))
+
+    # Monthly sum should equal yearly total
+    assert abs(monthly_fcf_sum - yearly_fcf) < 1
+
+
+def test_generate_monthly_data_structure(default_inputs):
+    """Test that generate_monthly_data returns correct structure"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    monthly_data = calc.generate_monthly_data()
+
+    # Should have 12 months × 25 years = 300 data points
+    expected_months = default_inputs.Project_Lifetime * 12
+    assert len(monthly_data) == expected_months
+
+    # First data point should be year 1, month 1
+    assert monthly_data[0]["year"] == 1
+    assert monthly_data[0]["month"] == 1
+    assert monthly_data[0]["month_name"] == "Jan"
+
+    # Last data point should be year 25, month 12
+    assert monthly_data[-1]["year"] == default_inputs.Project_Lifetime
+    assert monthly_data[-1]["month"] == 12
+    assert monthly_data[-1]["month_name"] == "Dec"
+
+    # Check that all required fields exist
+    required_fields = [
+        "year", "month", "month_name", "energy_production_mwh",
+        "revenue", "om_costs", "ebitda", "cfads",
+        "debt_service", "fcf_to_equity", "cumulative_fcf_to_equity"
+    ]
+    for field in required_fields:
+        assert field in monthly_data[0]
+
+
+def test_monthly_cumulative_fcf_matches_yearly(default_inputs):
+    """Test that cumulative FCF at year-end matches yearly data"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    yearly_data = calc.generate_yearly_data()
+    monthly_data = calc.generate_monthly_data()
+
+    # Check cumulative FCF at end of each year
+    for year_idx, year in enumerate(yearly_data["years"]):
+        # Get the December entry for this year (month 12)
+        december_idx = (year * 12) - 1  # Index is 0-based
+
+        yearly_cumulative = yearly_data["cumulative_fcf_to_equity"][year_idx]
+        monthly_cumulative = monthly_data[december_idx]["cumulative_fcf_to_equity"]
+
+        # Should match within small tolerance
+        assert abs(yearly_cumulative - monthly_cumulative) < 10
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
