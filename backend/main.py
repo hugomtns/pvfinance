@@ -128,7 +128,7 @@ async def calculate_project(inputs: ProjectInputsRequest):
     Returns comprehensive financial analysis including:
     - Project summary
     - Financing structure
-    - Key metrics (IRR, LCOE, DSCR, NPV)
+    - Key metrics (IRR, LCOE, DSCR, NPV, Payback Periods)
     - First year operations
     - Project assessment
     """

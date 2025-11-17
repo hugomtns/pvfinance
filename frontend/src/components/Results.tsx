@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ProjectResults } from '../types';
 import { YearlyDataTable } from './YearlyDataTable';
+import { YearlyCharts } from './YearlyCharts';
 import { AuditLogView } from './AuditLogView';
 import '../styles/Results.css';
 
@@ -201,6 +202,22 @@ export function Results({ results }: ResultsProps) {
             <span className="result-label" title="Power Purchase Agreement: The most critical project contract. It is the long-term (e.g., 15-25 year) sales agreement with a creditworthy offtaker (like a utility) who agrees to purchase all electricity produced by the project at a fixed, often escalating, price.">PPA Price</span>
             <span className="result-value">€{formatNumber(key_metrics.ppa_price)}/MWh</span>
           </div>
+          <div className="result-item">
+            <span className="result-label" title="Equity Payback Period: The number of years required for cumulative free cash flows to equity to become positive, indicating when equity investors recover their initial investment.">Equity Payback</span>
+            <span className="result-value">
+              {key_metrics.equity_payback_years !== null
+                ? `${formatNumber(key_metrics.equity_payback_years, 1)} years`
+                : 'N/A'}
+            </span>
+          </div>
+          <div className="result-item">
+            <span className="result-label" title="Project Payback Period: The number of years required for cumulative cash flows available for debt service (CFADS) to recover the total capital expenditure.">Project Payback</span>
+            <span className="result-value">
+              {key_metrics.project_payback_years !== null
+                ? `${formatNumber(key_metrics.project_payback_years, 1)} years`
+                : 'N/A'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -281,6 +298,18 @@ export function Results({ results }: ResultsProps) {
           </div>
         </div>
       </div>
+
+      {/* Cash Flow Charts */}
+      {results.yearly_data && (
+        <div className="results-section">
+          <h3>Cash Flow Analysis</h3>
+          <YearlyCharts
+            data={results.yearly_data}
+            equityPaybackYears={key_metrics.equity_payback_years}
+            projectPaybackYears={key_metrics.project_payback_years}
+          />
+        </div>
+      )}
 
       {/* Yearly Projections Table */}
       {results.yearly_data && (

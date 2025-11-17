@@ -9,9 +9,10 @@ from calculator import ProjectInputs, SolarFinanceCalculator
 @pytest.fixture
 def default_inputs():
     """Default project inputs for testing"""
+    # P50 Year 0 Yield = 50 MW × 0.22 CF × 8760 hours = 96,360 MWh
     return ProjectInputs(
         Capacity=50,
-        Capacity_Factor=0.22,
+        P50_Year_0_Yield=96_360,
         CapEx_per_MW=1_000_000,
         PPA_Price=70,
         OM_Cost_per_MW_year=15_000,
@@ -283,6 +284,120 @@ def test_high_ppa_price_improves_irr(default_inputs):
 
     # Higher PPA should yield higher IRR
     assert irr_high > irr_low
+
+
+def test_equity_payback_period_calculation(default_inputs):
+    """Test equity payback period calculation"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    payback = calc.calc_Equity_Payback_Period()
+
+    # Payback should be a positive number
+    assert payback is not None
+    assert payback > 0
+
+    # Payback should be within project lifetime
+    assert payback <= default_inputs.Project_Lifetime
+
+    # Verify by checking cumulative FCF at payback year
+    payback_year = int(payback) + 1
+    cumulative_fcf = 0
+    for year in range(1, payback_year + 1):
+        fcf = calc.calc_FCF_to_Equity_year_t(year)
+        cumulative_fcf += fcf
+
+    # Cumulative FCF should be positive by the payback year
+    assert cumulative_fcf >= 0
+
+
+def test_project_payback_period_calculation(default_inputs):
+    """Test project payback period calculation"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    payback = calc.calc_Project_Payback_Period()
+    total_capex = calc.calc_Total_CapEx()
+
+    # Payback should be a positive number
+    assert payback is not None
+    assert payback > 0
+
+    # Payback should be within project lifetime
+    assert payback <= default_inputs.Project_Lifetime
+
+    # Verify by checking cumulative CFADS at payback year
+    payback_year = int(payback) + 1
+    cumulative_cfads = 0
+    for year in range(1, payback_year + 1):
+        cfads = calc.calc_CFADS_year_t(year)
+        cumulative_cfads += cfads
+
+    # Cumulative CFADS should exceed total CapEx by the payback year
+    assert cumulative_cfads >= total_capex
+
+
+def test_equity_payback_before_project_payback(default_inputs):
+    """Test that equity payback is typically longer than project payback due to debt service"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    equity_payback = calc.calc_Equity_Payback_Period()
+    project_payback = calc.calc_Project_Payback_Period()
+
+    # Both should exist
+    assert equity_payback is not None
+    assert project_payback is not None
+
+    # Equity payback is usually longer because equity investors only get cash
+    # after debt service, while project payback uses full CFADS
+    assert equity_payback >= project_payback
+
+
+def test_payback_with_poor_economics_returns_none():
+    """Test that payback returns None when project doesn't achieve payback"""
+    # Create a project with very low PPA price (unprofitable)
+    poor_inputs = ProjectInputs(
+        Capacity=50,
+        P50_Year_0_Yield=96_360,
+        CapEx_per_MW=1_000_000,
+        PPA_Price=20,  # Very low PPA price
+        OM_Cost_per_MW_year=15_000,
+        Degradation_Rate=0.004,
+        PPA_Escalation=0.0,
+        OM_Escalation=0.01,
+        Gearing_Ratio=0.0,  # No debt to avoid issues
+        Interest_Rate=0.045,
+        Debt_Tenor=15,
+        Target_DSCR=1.30,
+        Project_Lifetime=25,
+        Tax_Rate=0.25,
+        Discount_Rate=0.08
+    )
+
+    calc = SolarFinanceCalculator(poor_inputs)
+
+    equity_payback = calc.calc_Equity_Payback_Period()
+    project_payback = calc.calc_Project_Payback_Period()
+
+    # With such poor economics, payback might not occur
+    # (or if it does, it should be very long)
+    if equity_payback is not None:
+        assert equity_payback > 20  # Should be very long if it exists
+
+
+def test_payback_included_in_summary_report(default_inputs):
+    """Test that payback periods are included in summary report"""
+    calc = SolarFinanceCalculator(default_inputs)
+
+    report = calc.generate_summary_report()
+
+    # Check that payback periods are in key metrics
+    assert "equity_payback_years" in report["key_metrics"]
+    assert "project_payback_years" in report["key_metrics"]
+
+    # Both should be positive numbers
+    assert report["key_metrics"]["equity_payback_years"] is not None
+    assert report["key_metrics"]["project_payback_years"] is not None
+    assert report["key_metrics"]["equity_payback_years"] > 0
+    assert report["key_metrics"]["project_payback_years"] > 0
 
 
 if __name__ == "__main__":

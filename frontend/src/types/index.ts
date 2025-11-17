@@ -71,6 +71,8 @@ export interface KeyMetrics {
   avg_dscr: number;
   project_npv: number;
   ppa_price: number;
+  equity_payback_years: number | null;
+  project_payback_years: number | null;
 }
 
 export interface FirstYearOperations {

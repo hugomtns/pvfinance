@@ -18,6 +18,8 @@ import '../styles/YearlyData.css';
 
 interface YearlyChartsProps {
   data: YearlyData;
+  equityPaybackYears?: number | null;
+  projectPaybackYears?: number | null;
 }
 
 const formatCurrency = (value: number): string => {
@@ -40,7 +42,7 @@ const formatNumber = (value: number): string => {
   }).format(value);
 };
 
-export function YearlyCharts({ data }: YearlyChartsProps) {
+export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: YearlyChartsProps) {
   // Transform data for charts
   const chartData = data.years.map((year, index) => ({
     year,
@@ -182,6 +184,21 @@ export function YearlyCharts({ data }: YearlyChartsProps) {
               contentStyle={{ backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px' }}
             />
             <ReferenceLine y={0} stroke="#000" strokeDasharray="3 3" label="Breakeven" />
+            {equityPaybackYears !== null && equityPaybackYears !== undefined && (
+              <ReferenceLine
+                x={Math.ceil(equityPaybackYears)}
+                stroke="#ef4444"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                label={{
+                  value: `Equity Payback: ${equityPaybackYears.toFixed(1)} yrs`,
+                  position: 'top',
+                  fill: '#ef4444',
+                  fontSize: 12,
+                  fontWeight: 'bold'
+                }}
+              />
+            )}
             <Area
               type="monotone"
               dataKey="cumulativeFCF"
@@ -195,6 +212,11 @@ export function YearlyCharts({ data }: YearlyChartsProps) {
         </ResponsiveContainer>
         <p className="chart-caption">
           Running total of equity cash flows over time. Crossing zero indicates payback of initial equity investment.
+          {equityPaybackYears !== null && equityPaybackYears !== undefined && (
+            <span style={{ fontWeight: 'bold', color: '#ef4444' }}>
+              {' '}Equity payback achieved at year {equityPaybackYears.toFixed(1)}.
+            </span>
+          )}
         </p>
       </div>
     </div>

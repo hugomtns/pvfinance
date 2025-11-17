@@ -288,14 +288,65 @@ class SolarFinanceCalculator:
         """
         total_capex = self.calc_Total_CapEx()
         pv_cfads = 0
-        
+
         for year in range(1, self.inputs.Project_Lifetime + 1):
             cfads = self.calc_CFADS_year_t(year)
             discount_factor = (1 + self.inputs.Discount_Rate) ** year
             pv_cfads += cfads / discount_factor
-        
+
         return -total_capex + pv_cfads
-    
+
+    def calc_Equity_Payback_Period(self) -> float:
+        """
+        Calculate equity payback period in years (when cumulative FCF to equity becomes positive)
+        Returns fractional years with linear interpolation for sub-year precision
+        Returns None if payback never occurs within project lifetime
+        """
+        cumulative_fcf = 0
+        prev_cumulative = 0
+
+        for year in range(1, self.inputs.Project_Lifetime + 1):
+            fcf = self.calc_FCF_to_Equity_year_t(year)
+            prev_cumulative = cumulative_fcf
+            cumulative_fcf += fcf
+
+            # Check if we crossed zero (payback achieved)
+            if prev_cumulative < 0 and cumulative_fcf >= 0:
+                # Linear interpolation to find fractional year
+                # prev_cumulative + fraction * fcf = 0
+                # fraction = -prev_cumulative / fcf
+                fraction = -prev_cumulative / fcf if fcf != 0 else 0
+                return year - 1 + fraction
+
+        # If cumulative is still negative after all years, no payback
+        return None if cumulative_fcf < 0 else self.inputs.Project_Lifetime
+
+    def calc_Project_Payback_Period(self) -> float:
+        """
+        Calculate project payback period in years (when cumulative CFADS recovers total CapEx)
+        Returns fractional years with linear interpolation for sub-year precision
+        Returns None if payback never occurs within project lifetime
+        """
+        total_capex = self.calc_Total_CapEx()
+        cumulative_cfads = 0
+        prev_cumulative = 0
+
+        for year in range(1, self.inputs.Project_Lifetime + 1):
+            cfads = self.calc_CFADS_year_t(year)
+            prev_cumulative = cumulative_cfads
+            cumulative_cfads += cfads
+
+            # Check if we recovered the CapEx
+            if cumulative_cfads >= total_capex:
+                # Linear interpolation to find fractional year
+                # prev_cumulative + fraction * cfads = total_capex
+                # fraction = (total_capex - prev_cumulative) / cfads
+                fraction = (total_capex - prev_cumulative) / cfads if cfads != 0 else 0
+                return year - 1 + fraction
+
+        # If cumulative CFADS never reaches CapEx, no payback
+        return None if cumulative_cfads < total_capex else self.inputs.Project_Lifetime
+
     # =================================================================
     # SUMMARY REPORT
     # =================================================================
@@ -320,6 +371,8 @@ class SolarFinanceCalculator:
         min_dscr = self.calc_Minimum_DSCR()
         avg_dscr = self.calc_Average_DSCR()
         project_npv = self.calc_Project_NPV()
+        equity_payback = self.calc_Equity_Payback_Period()
+        project_payback = self.calc_Project_Payback_Period()
         
         # First year operations
         year1_energy = self.calc_Energy_year_t(1)
@@ -355,7 +408,9 @@ class SolarFinanceCalculator:
                 "min_dscr": min_dscr,
                 "avg_dscr": avg_dscr,
                 "project_npv": project_npv,
-                "ppa_price": self.inputs.PPA_Price
+                "ppa_price": self.inputs.PPA_Price,
+                "equity_payback_years": equity_payback,
+                "project_payback_years": project_payback
             },
             "first_year_operations": {
                 "energy_production_mwh": year1_energy,

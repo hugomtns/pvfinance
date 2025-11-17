@@ -112,6 +112,16 @@ class PDFReportGenerator:
             ['Avg DSCR', f"{key_metrics.get('avg_dscr', 0):.2f}x"],
             ['PPA Price', f"€{key_metrics.get('ppa_price', 0):.2f}/MWh"],
         ]
+
+        # Add payback periods if available
+        equity_payback = key_metrics.get('equity_payback_years')
+        if equity_payback is not None:
+            metrics_data.append(['Equity Payback', f"{equity_payback:.1f} years"])
+
+        project_payback = key_metrics.get('project_payback_years')
+        if project_payback is not None:
+            metrics_data.append(['Project Payback', f"{project_payback:.1f} years"])
+
         elements.append(self._create_table(metrics_data, highlight_header=True))
         elements.append(Spacer(1, 0.2 * inch))
 
