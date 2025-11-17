@@ -47,10 +47,15 @@ export function Results({ results }: ResultsProps) {
   const [showYearlyTable, setShowYearlyTable] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('summary');
 
-  // Debug: Check if yearly_data exists
+  // Debug: Check if yearly_data and monthly_data exist
   console.log('Results received, yearly_data exists:', !!yearly_data);
+  console.log('Results received, monthly_data exists:', !!results.monthly_data);
+  console.log('Results keys:', Object.keys(results));
   if (yearly_data) {
     console.log('Yearly data years:', yearly_data.years.length);
+  }
+  if (results.monthly_data) {
+    console.log('Monthly data points:', results.monthly_data.length);
   }
 
   const handleExportPDF = async () => {

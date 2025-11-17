@@ -100,6 +100,7 @@ class ProjectResultsResponse(BaseModel):
     first_year_operations: Dict
     assessment: Dict
     yearly_data: Optional[Dict] = None
+    monthly_data: Optional[List[Dict]] = None
     cost_items_breakdown: Optional[Dict] = None
     audit_log: Optional[Dict] = None
 
@@ -220,6 +221,13 @@ async def calculate_project(inputs: ProjectInputsRequest):
                 "total_capex": total_capex,
                 "total_opex_year_1": total_opex_year_1
             }
+
+        # Debug: Check what's in the report before returning
+        print(f"DEBUG: Report keys before return: {list(report.keys())}")
+        if "monthly_data" in report:
+            print(f"DEBUG: monthly_data is in report with {len(report['monthly_data'])} entries")
+        else:
+            print("DEBUG: WARNING - monthly_data is NOT in report!")
 
         return report
 
