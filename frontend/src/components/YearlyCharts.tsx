@@ -79,7 +79,7 @@ export function YearlyCharts({ data, equityPaybackYears, projectPaybackYears }: 
               stroke="#6b7280"
             />
             <YAxis
-              label={{ value: 'Cumulative Cash Flow (€)', angle: -90, position: 'insideLeft', offset: 10 }}
+              label={{ value: 'Cumulative Cash Flow (€)', angle: -90, position: 'insideLeft', dx: -30 }}
               tickFormatter={formatCurrency}
               stroke="#6b7280"
             />
