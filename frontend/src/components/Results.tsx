@@ -47,6 +47,13 @@ export function Results({ results }: ResultsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('summary');
   const [showCashFlowAnalysis, setShowCashFlowAnalysis] = useState(true);
   const [cashFlowViewMode, setCashFlowViewMode] = useState<'yearly' | 'monthly'>('yearly');
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportOptions, setExportOptions] = useState({
+    includeYearlyChart: true,
+    includeYearlyTable: true,
+    includeMonthlyChart: false,
+    includeMonthlyTable: false,
+  });
 
   // Debug: Check if yearly_data and monthly_data exist
   console.log('Results received, yearly_data exists:', !!yearly_data);
@@ -62,6 +69,7 @@ export function Results({ results }: ResultsProps) {
   const handleExportPDF = async () => {
     setIsExporting(true);
     setExportError(null);
+    setShowExportModal(false);
 
     try {
       const response = await fetch('/api/export-pdf', {
@@ -69,7 +77,10 @@ export function Results({ results }: ResultsProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(results),
+        body: JSON.stringify({
+          ...results,
+          export_options: exportOptions,
+        }),
       });
 
       if (!response.ok) {
@@ -101,12 +112,12 @@ export function Results({ results }: ResultsProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
         <h2 style={{ margin: 0 }}>Project Financial Analysis</h2>
         <button
-          onClick={handleExportPDF}
+          onClick={() => setShowExportModal(true)}
           disabled={isExporting}
           className="btn btn-primary"
           style={{ padding: '0.625rem 1.25rem' }}
         >
-          {isExporting ? 'Generating PDF...' : 'Export to PDF'}
+          Export to PDF
         </button>
       </div>
 
@@ -399,6 +410,80 @@ export function Results({ results }: ResultsProps) {
       {activeTab === 'calculations' && results.audit_log && (
         <div className="tab-content">
           <AuditLogView data={results.audit_log} />
+        </div>
+      )}
+
+      {/* Export PDF Modal */}
+      {showExportModal && (
+        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Export PDF Report</h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowExportModal(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: 'var(--spacing-md)', color: 'var(--color-text-secondary)' }}>
+                Select the components to include in your PDF report:
+              </p>
+              <div className="export-options">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={exportOptions.includeYearlyChart}
+                    onChange={(e) => setExportOptions({ ...exportOptions, includeYearlyChart: e.target.checked })}
+                  />
+                  <span>Cash Flow Chart (Annual)</span>
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={exportOptions.includeYearlyTable}
+                    onChange={(e) => setExportOptions({ ...exportOptions, includeYearlyTable: e.target.checked })}
+                  />
+                  <span>Cash Flow Table (Annual)</span>
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={exportOptions.includeMonthlyChart}
+                    onChange={(e) => setExportOptions({ ...exportOptions, includeMonthlyChart: e.target.checked })}
+                    disabled={!results.monthly_data}
+                  />
+                  <span>Cash Flow Chart (Monthly){!results.monthly_data && ' (Not available)'}</span>
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={exportOptions.includeMonthlyTable}
+                    onChange={(e) => setExportOptions({ ...exportOptions, includeMonthlyTable: e.target.checked })}
+                    disabled={!results.monthly_data}
+                  />
+                  <span>Cash Flow Table (Monthly){!results.monthly_data && ' (Not available)'}</span>
+                </label>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowExportModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleExportPDF}
+                disabled={isExporting}
+              >
+                {isExporting ? 'Generating...' : 'Generate PDF'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

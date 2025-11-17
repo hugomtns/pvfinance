@@ -74,6 +74,14 @@ class PDFReportGenerator:
                                 rightMargin=72, leftMargin=72,
                                 topMargin=72, bottomMargin=18)
 
+        # Get export options (default to including everything)
+        export_options = report_data.get('export_options', {
+            'includeYearlyChart': True,
+            'includeYearlyTable': True,
+            'includeMonthlyChart': False,
+            'includeMonthlyTable': False,
+        })
+
         # Container for the 'Flowable' objects
         elements = []
 
@@ -249,9 +257,9 @@ class PDFReportGenerator:
                 elements.append(opex_table)
                 elements.append(Spacer(1, 0.2 * inch))
 
-        # Yearly Financial Projections (if available)
+        # Yearly Financial Projections (if available and requested)
         yearly_data = report_data.get('yearly_data')
-        if yearly_data:
+        if yearly_data and export_options.get('includeYearlyTable', True):
             elements.append(PageBreak())
             elements.append(Paragraph("Yearly Financial Projections", self.styles['SectionHeader']))
 
@@ -323,6 +331,76 @@ class PDFReportGenerator:
 
                 elements.append(yearly_table)
                 elements.append(Spacer(1, 0.2 * inch))
+
+        # Monthly Financial Projections (if available and requested)
+        monthly_data = report_data.get('monthly_data')
+        if monthly_data and export_options.get('includeMonthlyTable', False):
+            elements.append(PageBreak())
+            elements.append(Paragraph("Monthly Financial Projections", self.styles['SectionHeader']))
+
+            # Group by year
+            years_dict = {}
+            for point in monthly_data:
+                year = point.get('year')
+                if year not in years_dict:
+                    years_dict[year] = []
+                years_dict[year].append(point)
+
+            # Process each year (max 2 years per page to keep readable)
+            years_per_page = 2
+            sorted_years = sorted(years_dict.keys())
+
+            for page_idx, page_start in enumerate(range(0, len(sorted_years), years_per_page)):
+                page_end = min(page_start + years_per_page, len(sorted_years))
+
+                if page_idx > 0:
+                    elements.append(PageBreak())
+                    elements.append(Paragraph(f"Monthly Financial Projections (continued)", self.styles['SectionHeader']))
+
+                for year in sorted_years[page_start:page_end]:
+                    elements.append(Paragraph(f"Year {year}", self.styles['Heading3']))
+
+                    monthly_table_data = [[
+                        'Month', 'Energy\n(MWh)', 'Revenue\n(€)', 'O&M\n(€)',
+                        'EBITDA\n(€)', 'CFADS\n(€)', 'FCF to Eq\n(€)', 'Cumul FCF\n(€)'
+                    ]]
+
+                    for month_point in years_dict[year]:
+                        monthly_table_data.append([
+                            month_point.get('month_name', ''),
+                            f"{month_point.get('energy_production_mwh', 0):,.0f}",
+                            format_currency(month_point.get('revenue', 0)),
+                            format_currency(month_point.get('om_costs', 0)),
+                            format_currency(month_point.get('ebitda', 0)),
+                            format_currency(month_point.get('cfads', 0)),
+                            format_currency(month_point.get('fcf_to_equity', 0)),
+                            format_currency(month_point.get('cumulative_fcf_to_equity', 0))
+                        ])
+
+                    # Create table with smaller column widths for monthly data
+                    col_widths = [0.6*inch, 0.7*inch, 0.9*inch, 0.7*inch, 0.9*inch, 0.9*inch, 0.9*inch, 1*inch]
+                    monthly_table = Table(monthly_table_data, colWidths=col_widths)
+
+                    table_style = [
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e5e7eb')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#111827')),
+                        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 7),
+                        ('FONTSIZE', (0, 1), (-1, -1), 6),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                        ('TOPPADDING', (0, 0), (-1, 0), 6),
+                        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+                        ('TOPPADDING', (0, 1), (-1, -1), 3),
+                        ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+                    ]
+                    monthly_table.setStyle(TableStyle(table_style))
+
+                    elements.append(monthly_table)
+                    elements.append(Spacer(1, 0.15 * inch))
 
         # Assessment
         elements.append(PageBreak())
