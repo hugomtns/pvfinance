@@ -104,17 +104,30 @@ export function YearlyCharts({
         .map((d: any) => d.year)
     : undefined;
 
+  // Add conditional data fields for positive/negative areas
+  const enrichedChartData = chartData.map((d: any) => ({
+    ...d,
+    cumulativeFCFNegative: d.cumulativeFCF < 0 ? d.cumulativeFCF : null,
+    cumulativeFCFPositive: d.cumulativeFCF >= 0 ? d.cumulativeFCF : null,
+  }));
+
   return (
     <div className="yearly-charts-container">
       {/* Cumulative Free Cash Flow to Equity */}
       <div className="chart-section">
         <h4>Cumulative Free Cash Flow to Equity</h4>
         <ResponsiveContainer width="100%" height={350}>
-          <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+          <AreaChart data={enrichedChartData} margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
             <defs>
-              <linearGradient id="colorFCF" x1="0" y1="0" x2="0" y2="1">
+              {/* Green gradient for positive FCF */}
+              <linearGradient id="colorFCFPositive" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+              </linearGradient>
+              {/* Red gradient for negative FCF */}
+              <linearGradient id="colorFCFNegative" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -147,33 +160,54 @@ export function YearlyCharts({
               stroke="#6b7280"
             />
             <Tooltip
-              formatter={(value: number) => [formatCurrency(value), 'Cumulative FCF']}
+              formatter={(value: number) => {
+                const color = value >= 0 ? '#10b981' : '#ef4444';
+                return [
+                  <span style={{ color, fontWeight: 'bold' }}>{formatCurrency(value)}</span>,
+                  'Cumulative FCF'
+                ];
+              }}
               contentStyle={{ backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px' }}
             />
             <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="3 3" />
             {equityPaybackYears !== null && equityPaybackYears !== undefined && mode === 'yearly' && (
               <ReferenceLine
                 x={equityPaybackYears}
-                stroke="#dc2626"
+                stroke="#3b82f6"
                 strokeWidth={3}
                 label={{
                   value: `Break-even`,
                   position: 'insideTopRight',
-                  fill: '#dc2626',
+                  fill: '#3b82f6',
                   fontSize: 14,
                   fontWeight: 'bold',
                   offset: 10
                 }}
               />
             )}
+            {/* Area for negative FCF (red) */}
             <Area
               type="monotone"
-              dataKey="cumulativeFCF"
+              dataKey="cumulativeFCFNegative"
+              stroke="#ef4444"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#colorFCFNegative)"
+              name="Cumulative FCF to Equity"
+              connectNulls={false}
+              isAnimationActive={false}
+            />
+            {/* Area for positive FCF (green) */}
+            <Area
+              type="monotone"
+              dataKey="cumulativeFCFPositive"
               stroke="#10b981"
               strokeWidth={2}
               fillOpacity={1}
-              fill="url(#colorFCF)"
+              fill="url(#colorFCFPositive)"
               name="Cumulative FCF to Equity"
+              connectNulls={false}
+              isAnimationActive={false}
               dot={(props: any) => {
                 const { cx, cy, payload } = props;
                 if (payload.isBreakeven) {
@@ -182,7 +216,7 @@ export function YearlyCharts({
                       cx={cx}
                       cy={cy}
                       r={8}
-                      fill="#dc2626"
+                      fill="#3b82f6"
                       stroke="#ffffff"
                       strokeWidth={2}
                     />
@@ -197,7 +231,7 @@ export function YearlyCharts({
         <p className="chart-caption">
           {mode === 'monthly' ? 'Monthly' : 'Yearly'} cumulative cash flow to equity investors over project lifetime.
           {equityPaybackYears !== null && equityPaybackYears !== undefined && (
-            <span style={{ fontWeight: 'bold', color: '#dc2626' }}>
+            <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>
               {' '}Break-even (equity recovered) at {mode === 'monthly'
                 ? `month ${Math.round(equityPaybackYears * 12)} (year ${equityPaybackYears.toFixed(1)})`
                 : `year ${equityPaybackYears.toFixed(1)}`}.
