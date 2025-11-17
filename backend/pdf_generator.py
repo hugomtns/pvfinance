@@ -212,10 +212,6 @@ class PDFReportGenerator:
             'includeMonthlyTable': False,
         })
 
-        print(f"DEBUG: Export options received: {export_options}")
-        print(f"DEBUG: Include Yearly Table: {export_options.get('includeYearlyTable', True)}")
-        print(f"DEBUG: Include Monthly Table: {export_options.get('includeMonthlyTable', False)}")
-
         # Container for the 'Flowable' objects
         elements = []
 
@@ -472,9 +468,6 @@ class PDFReportGenerator:
 
         # Yearly Financial Projections (if available and requested)
         include_yearly_table = export_options.get('includeYearlyTable', True)
-        print(f"DEBUG PDF: yearly_data exists: {bool(yearly_data)}")
-        print(f"DEBUG PDF: include_yearly_table: {include_yearly_table}")
-        print(f"DEBUG PDF: Will include yearly table: {bool(yearly_data and include_yearly_table)}")
 
         if yearly_data and include_yearly_table:
             elements.append(PageBreak())

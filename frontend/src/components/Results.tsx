@@ -55,17 +55,6 @@ export function Results({ results }: ResultsProps) {
     includeMonthlyTable: false,
   });
 
-  // Debug: Check if yearly_data and monthly_data exist
-  console.log('Results received, yearly_data exists:', !!yearly_data);
-  console.log('Results received, monthly_data exists:', !!results.monthly_data);
-  console.log('Results keys:', Object.keys(results));
-  if (yearly_data) {
-    console.log('Yearly data years:', yearly_data.years.length);
-  }
-  if (results.monthly_data) {
-    console.log('Monthly data points:', results.monthly_data.length);
-  }
-
   const handleExportPDF = async () => {
     setIsExporting(true);
     setExportError(null);
@@ -75,9 +64,6 @@ export function Results({ results }: ResultsProps) {
       ...results,
       export_options: exportOptions,
     };
-
-    console.log('DEBUG: Sending export options:', exportOptions);
-    console.log('DEBUG: Full payload keys:', Object.keys(payload));
 
     try {
       const response = await fetch('/api/export-pdf', {

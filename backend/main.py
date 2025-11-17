@@ -187,7 +187,6 @@ async def calculate_project(inputs: ProjectInputsRequest):
         # Add yearly data
         try:
             yearly_data = calculator.generate_yearly_data()
-            print(f"DEBUG: Generated yearly_data with {len(yearly_data['years'])} years")
             report["yearly_data"] = yearly_data
         except Exception as e:
             print(f"ERROR generating yearly_data: {e}")
@@ -197,7 +196,6 @@ async def calculate_project(inputs: ProjectInputsRequest):
         # Add monthly data
         try:
             monthly_data = calculator.generate_monthly_data()
-            print(f"DEBUG: Generated monthly_data with {len(monthly_data)} months")
             report["monthly_data"] = monthly_data
         except Exception as e:
             print(f"ERROR generating monthly_data: {e}")
@@ -207,7 +205,6 @@ async def calculate_project(inputs: ProjectInputsRequest):
         # Add audit log
         try:
             audit_log = calculator.generate_calculation_audit_log()
-            print(f"DEBUG: Generated audit_log with {len(audit_log['calculation_steps'])} calculation steps")
             report["audit_log"] = audit_log
         except Exception as e:
             print(f"ERROR generating audit_log: {e}")
@@ -221,13 +218,6 @@ async def calculate_project(inputs: ProjectInputsRequest):
                 "total_capex": total_capex,
                 "total_opex_year_1": total_opex_year_1
             }
-
-        # Debug: Check what's in the report before returning
-        print(f"DEBUG: Report keys before return: {list(report.keys())}")
-        if "monthly_data" in report:
-            print(f"DEBUG: monthly_data is in report with {len(report['monthly_data'])} entries")
-        else:
-            print("DEBUG: WARNING - monthly_data is NOT in report!")
 
         return report
 
@@ -263,11 +253,6 @@ async def export_pdf(report_data: Dict):
     Accepts the full calculation results and generates a downloadable PDF report
     """
     try:
-        print(f"DEBUG MAIN: Received export request")
-        print(f"DEBUG MAIN: Report data keys: {list(report_data.keys())}")
-        export_options = report_data.get('export_options')
-        print(f"DEBUG MAIN: Export options: {export_options}")
-
         # Generate PDF
         pdf_generator = PDFReportGenerator()
         pdf_buffer = pdf_generator.generate_report(report_data)

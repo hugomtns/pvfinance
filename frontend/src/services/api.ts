@@ -55,10 +55,6 @@ export const api = {
     }
 
     const data = await response.json();
-    console.log('API Response received:', {
-      hasYearlyData: !!data.yearly_data,
-      keys: Object.keys(data)
-    });
     return data;
   },
 };
