@@ -105,11 +105,22 @@ export function YearlyCharts({
     : undefined;
 
   // Add conditional data fields for positive/negative areas
-  const enrichedChartData = chartData.map((d: any) => ({
-    ...d,
-    cumulativeFCFNegative: d.cumulativeFCF < 0 ? d.cumulativeFCF : null,
-    cumulativeFCFPositive: d.cumulativeFCF >= 0 ? d.cumulativeFCF : null,
-  }));
+  // Include transition points in both datasets to avoid gaps
+  const enrichedChartData = chartData.map((d: any, index: number) => {
+    const prev = chartData[index - 1];
+    const next = chartData[index + 1];
+
+    // Check if this point is adjacent to a zero crossing
+    const isLastNegative = d.cumulativeFCF < 0 && next && next.cumulativeFCF >= 0;
+    const isFirstPositive = d.cumulativeFCF >= 0 && prev && prev.cumulativeFCF < 0;
+
+    return {
+      ...d,
+      // Include transition points in both datasets
+      cumulativeFCFNegative: (d.cumulativeFCF < 0 || isFirstPositive) ? d.cumulativeFCF : null,
+      cumulativeFCFPositive: (d.cumulativeFCF >= 0 || isLastNegative) ? d.cumulativeFCF : null,
+    };
+  });
 
   return (
     <div className="yearly-charts-container">
@@ -170,21 +181,6 @@ export function YearlyCharts({
               contentStyle={{ backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px' }}
             />
             <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="3 3" />
-            {equityPaybackYears !== null && equityPaybackYears !== undefined && mode === 'yearly' && (
-              <ReferenceLine
-                x={equityPaybackYears}
-                stroke="#3b82f6"
-                strokeWidth={3}
-                label={{
-                  value: `Break-even`,
-                  position: 'insideTopRight',
-                  fill: '#3b82f6',
-                  fontSize: 14,
-                  fontWeight: 'bold',
-                  offset: 10
-                }}
-              />
-            )}
             {/* Area for negative FCF (red) */}
             <Area
               type="monotone"
@@ -194,7 +190,7 @@ export function YearlyCharts({
               fillOpacity={1}
               fill="url(#colorFCFNegative)"
               name="Cumulative FCF to Equity"
-              connectNulls={false}
+              connectNulls={true}
               isAnimationActive={false}
             />
             {/* Area for positive FCF (green) */}
@@ -206,7 +202,7 @@ export function YearlyCharts({
               fillOpacity={1}
               fill="url(#colorFCFPositive)"
               name="Cumulative FCF to Equity"
-              connectNulls={false}
+              connectNulls={true}
               isAnimationActive={false}
               dot={(props: any) => {
                 const { cx, cy, payload } = props;
