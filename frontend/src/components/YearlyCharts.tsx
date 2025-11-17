@@ -51,6 +51,11 @@ export function YearlyCharts({
   equityPaybackYears,
   projectPaybackYears
 }: YearlyChartsProps) {
+  // Calculate the single closest month to break-even for monthly mode
+  const breakEvenMonth = equityPaybackYears !== null && equityPaybackYears !== undefined
+    ? Math.round(equityPaybackYears * 12)
+    : null;
+
   // Transform data for charts based on mode
   const chartData = mode === 'monthly' && monthlyData
     ? monthlyData.map((point, index) => {
@@ -59,29 +64,27 @@ export function YearlyCharts({
 
         // Calculate position for break-even marker (in months)
         const monthPosition = (point.year - 1) * 12 + point.month;
-        const breakEvenMonth = equityPaybackYears !== null && equityPaybackYears !== undefined
-          ? equityPaybackYears * 12
-          : null;
 
         return {
           year: periodLabel,
           displayLabel: isYearBoundary ? `Y${point.year}` : '',
           isYearBoundary,
+          monthPosition,
           energy: Math.round(point.energy_production_mwh),
           revenue: point.revenue,
           omCosts: -Math.abs(point.om_costs),
           debtService: -Math.abs(point.debt_service),
           fcfToEquity: point.fcf_to_equity,
           cumulativeFCF: point.cumulative_fcf_to_equity,
-          isBreakeven: breakEvenMonth !== null
-            ? Math.abs(monthPosition - breakEvenMonth) < 1
-            : false
+          // Only mark ONE month as break-even (the closest one)
+          isBreakeven: breakEvenMonth !== null && monthPosition === breakEvenMonth
         };
       })
     : data.years.map((year, index) => ({
         year,
         displayLabel: year.toString(),
         isYearBoundary: true,
+        monthPosition: year,
         energy: Math.round(data.energy_production_mwh[index]),
         revenue: data.revenue[index],
         omCosts: -Math.abs(data.om_costs[index]),
@@ -93,6 +96,13 @@ export function YearlyCharts({
           ? Math.abs(year - equityPaybackYears) < 0.6
           : false
       }));
+
+  // For monthly mode, create explicit tick positions for year boundaries
+  const xAxisTicks = mode === 'monthly' && monthlyData
+    ? chartData
+        .filter((d: any) => d.isYearBoundary)
+        .map((d: any) => d.year)
+    : undefined;
 
   return (
     <div className="yearly-charts-container">
@@ -116,16 +126,17 @@ export function YearlyCharts({
                 offset: -5
               }}
               stroke="#6b7280"
+              ticks={xAxisTicks}
+              interval={mode === 'monthly' ? 0 : 'preserveStartEnd'}
               tick={(props: any) => {
                 const { x, y, payload } = props;
-                const dataPoint = chartData[payload.index];
-                // Only show labels at year boundaries for monthly mode
-                if (mode === 'monthly' && !dataPoint?.isYearBoundary) {
-                  return null;
-                }
+                // Find the data point for this tick
+                const dataPoint = chartData.find((d: any) => d.year === payload.value);
+                const displayValue = dataPoint?.displayLabel || payload.value;
+
                 return (
                   <text x={x} y={y + 10} textAnchor="middle" fill="#6b7280" fontSize={12}>
-                    {dataPoint?.displayLabel || payload.value}
+                    {displayValue}
                   </text>
                 );
               }}
