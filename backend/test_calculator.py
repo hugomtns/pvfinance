@@ -465,6 +465,37 @@ def test_monthly_fcf_sums_to_yearly(default_inputs):
     assert abs(monthly_fcf_sum - yearly_fcf) < 1
 
 
+def test_seasonal_energy_distribution(default_inputs):
+    """Test that seasonal factors create realistic Northern Hemisphere distribution"""
+    from calculator import NORTHERN_HEMISPHERE_MONTHLY_FACTORS
+
+    # Verify factors sum to approximately 1.0
+    total = sum(NORTHERN_HEMISPHERE_MONTHLY_FACTORS)
+    assert abs(total - 1.0) < 0.02, f"Seasonal factors sum to {total}, expected ~1.0"
+
+    # Verify July (month 7, index 6) has peak production
+    july_factor = NORTHERN_HEMISPHERE_MONTHLY_FACTORS[6]
+    assert july_factor == max(NORTHERN_HEMISPHERE_MONTHLY_FACTORS), "July should have peak production"
+
+    # Verify December (month 12, index 11) has lowest production
+    december_factor = NORTHERN_HEMISPHERE_MONTHLY_FACTORS[11]
+    assert december_factor == min(NORTHERN_HEMISPHERE_MONTHLY_FACTORS), "December should have lowest production"
+
+    # Verify seasonal variation ratio is between 3x and 5x
+    ratio = july_factor / december_factor
+    assert 3.0 <= ratio <= 5.0, f"Peak/trough ratio is {ratio:.1f}x, expected 3-5x"
+
+    # Test that actual monthly energy follows seasonal pattern
+    calc = SolarFinanceCalculator(default_inputs)
+    year = 1
+
+    july_energy = calc.calc_Energy_month_t(year, 7)
+    december_energy = calc.calc_Energy_month_t(year, 12)
+
+    # July should produce more than December
+    assert july_energy > december_energy * 3, "July energy should be significantly higher than December"
+
+
 def test_generate_monthly_data_structure(default_inputs):
     """Test that generate_monthly_data returns correct structure"""
     calc = SolarFinanceCalculator(default_inputs)

@@ -84,6 +84,34 @@ The calculator implements a strict dependency chain (see FORMULAS.md):
 
 **Critical**: All calculations use MW/MWh units consistently. No kW conversions.
 
+### Monthly Calculations with Seasonal Variation
+
+Monthly cash flows incorporate **realistic seasonal solar production** patterns for Northern Hemisphere projects:
+
+**Seasonal Distribution:**
+- Energy production varies by month based on typical mid-to-high latitude solar irradiance
+- Peak production: July (12.9% of annual energy)
+- Lowest production: December (3.7% of annual energy)
+- Peak/trough ratio: **~3.5x variation** (representative of Germany/UK latitude)
+- Factors defined in `NORTHERN_HEMISPHERE_MONTHLY_FACTORS` constant in calculator.py
+
+**Monthly Calculation Flow:**
+1. **Monthly Energy** = Annual Energy × Seasonal_Factor[month]
+2. **Monthly Revenue** = Monthly Energy × PPA_Price (with escalation)
+3. **Monthly O&M** = Annual O&M / 12 (uniform distribution)
+4. **Monthly EBITDA** = Monthly Revenue - Monthly O&M
+5. **Monthly CFADS** = Monthly EBITDA × (1 - Tax_Rate)
+6. **Monthly Debt Service** = Annual Debt Service / 12 (uniform distribution)
+7. **Monthly FCF** = Monthly CFADS - Monthly Debt Service
+
+**Impact on Cash Flows:**
+- Summer months (Jun-Aug): Higher energy → Higher revenue → Faster equity recovery
+- Winter months (Dec-Feb): Lower energy → Lower revenue → Slower equity recovery
+- Annual totals unchanged: Sum of 12 monthly values = Yearly value (energy conservation)
+- Break-even timing: More realistic payback period calculation with seasonal variation
+
+**Note**: O&M costs and debt service remain uniformly distributed for simplicity. Only energy production varies seasonally.
+
 ### Data Flow
 
 ```

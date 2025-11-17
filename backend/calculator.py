@@ -8,6 +8,28 @@ from dataclasses import dataclass
 from typing import List, Dict
 
 
+# Northern Hemisphere seasonal solar production distribution
+# Based on typical mid-to-high latitude solar irradiance patterns
+# Factors represent fraction of annual production occurring in each month
+# Normalized to sum to exactly 1.0 for energy conservation
+NORTHERN_HEMISPHERE_MONTHLY_FACTORS = [
+    0.04464286,  # Jan - Winter low
+    0.05654762,  # Feb
+    0.07638889,  # Mar - Spring ramp-up
+    0.09325397,  # Apr
+    0.11011905,  # May
+    0.12599206,  # Jun - Peak summer
+    0.12797619,  # Jul - Peak summer (highest)
+    0.11607143,  # Aug
+    0.09325397,  # Sep - Fall decline
+    0.07043651,  # Oct
+    0.04861111,  # Nov
+    0.03670635,  # Dec - Winter low (lowest)
+]
+# Peak/trough ratio: Jul (12.8%) / Dec (3.7%) = 3.49x variation
+# Sum = 1.0 (exactly, for energy conservation)
+
+
 # Financial functions
 def npv_calc(rate, values):
     """Calculate Net Present Value"""
@@ -185,9 +207,11 @@ class SolarFinanceCalculator:
     # =================================================================
 
     def calc_Energy_month_t(self, year: int, month: int) -> float:
-        """Calculate monthly energy production by distributing annual energy evenly across 12 months"""
+        """Calculate monthly energy production using Northern Hemisphere seasonal distribution"""
         annual_energy = self.calc_Energy_year_t(year)
-        return annual_energy / 12
+        # Apply seasonal factor (month is 1-indexed, list is 0-indexed)
+        seasonal_factor = NORTHERN_HEMISPHERE_MONTHLY_FACTORS[month - 1]
+        return annual_energy * seasonal_factor
 
     def calc_Revenue_month_t(self, year: int, month: int) -> float:
         """Calculate monthly revenue based on monthly energy production"""
