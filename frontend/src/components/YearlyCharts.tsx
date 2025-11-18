@@ -41,6 +41,16 @@ export function YearlyCharts({
     ? Math.round(equityPaybackYears * 12)
     : null;
 
+  // For yearly mode, find the first year where cumulative FCF becomes positive
+  const breakEvenYearInteger = mode === 'yearly'
+    ? data.cumulative_fcf_to_equity.findIndex((cumulative, index) => {
+        const prevCumulative = index > 0 ? data.cumulative_fcf_to_equity[index - 1] : -Infinity;
+        return prevCumulative < 0 && cumulative >= 0;
+      })
+    : -1;
+
+  const firstBreakEvenYear = breakEvenYearInteger >= 0 ? data.years[breakEvenYearInteger] : null;
+
   // Transform data for charts based on mode
   const chartData = mode === 'monthly' && monthlyData
     ? monthlyData.map((point) => {
@@ -65,22 +75,27 @@ export function YearlyCharts({
           isBreakeven: breakEvenMonth !== null && monthPosition === breakEvenMonth
         };
       })
-    : data.years.map((year, index) => ({
-        year,
-        displayLabel: year.toString(),
-        isYearBoundary: true,
-        monthPosition: year,
-        energy: Math.round(data.energy_production_mwh[index]),
-        revenue: data.revenue[index],
-        omCosts: -Math.abs(data.om_costs[index]),
-        debtService: -Math.abs(data.debt_service[index]),
-        taxes: -(data.ebitda[index] - data.cfads[index]),
-        fcfToEquity: data.fcf_to_equity[index],
-        cumulativeFCF: data.cumulative_fcf_to_equity[index],
-        isBreakeven: equityPaybackYears !== null && equityPaybackYears !== undefined
-          ? Math.abs(year - equityPaybackYears) < 0.6
-          : false
-      }));
+    : data.years.map((year, index) => {
+        // Mark as break-even only if this is the first year where cumulative FCF becomes positive
+        const currentCumulative = data.cumulative_fcf_to_equity[index];
+        const prevCumulative = index > 0 ? data.cumulative_fcf_to_equity[index - 1] : -Infinity;
+        const isFirstBreakevenYear = prevCumulative < 0 && currentCumulative >= 0;
+
+        return {
+          year,
+          displayLabel: year.toString(),
+          isYearBoundary: true,
+          monthPosition: year,
+          energy: Math.round(data.energy_production_mwh[index]),
+          revenue: data.revenue[index],
+          omCosts: -Math.abs(data.om_costs[index]),
+          debtService: -Math.abs(data.debt_service[index]),
+          taxes: -(data.ebitda[index] - data.cfads[index]),
+          fcfToEquity: data.fcf_to_equity[index],
+          cumulativeFCF: currentCumulative,
+          isBreakeven: isFirstBreakevenYear
+        };
+      });
 
   // For monthly mode, create explicit tick positions for year boundaries
   const xAxisTicks = mode === 'monthly' && monthlyData
@@ -211,11 +226,14 @@ export function YearlyCharts({
         </ResponsiveContainer>
         <p className="chart-caption">
           {mode === 'monthly' ? 'Monthly' : 'Yearly'} cumulative cash flow to equity investors over project lifetime.
-          {equityPaybackYears !== null && equityPaybackYears !== undefined && (
+          {mode === 'monthly' && equityPaybackYears !== null && equityPaybackYears !== undefined && (
             <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>
-              {' '}Break-even (equity recovered) at {mode === 'monthly'
-                ? `month ${Math.round(equityPaybackYears * 12)} (year ${equityPaybackYears.toFixed(1)})`
-                : `year ${equityPaybackYears.toFixed(1)}`}.
+              {' '}Break-even (equity recovered) at month {Math.round(equityPaybackYears * 12)} (year {equityPaybackYears.toFixed(1)}).
+            </span>
+          )}
+          {mode === 'yearly' && firstBreakEvenYear !== null && (
+            <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>
+              {' '}Break-even (equity recovered) at year {firstBreakEvenYear}.
             </span>
           )}
         </p>
