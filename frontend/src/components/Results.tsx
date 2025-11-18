@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ProjectResults } from '../types';
+import { api } from '../services/api';
 import { YearlyDataTable } from './YearlyDataTable';
 import { YearlyCharts } from './YearlyCharts';
 import { AuditLogView } from './AuditLogView';
@@ -60,26 +61,9 @@ export function Results({ results }: ResultsProps) {
     setExportError(null);
     setShowExportModal(false);
 
-    const payload = {
-      ...results,
-      export_options: exportOptions,
-    };
-
     try {
-      const response = await fetch('/api/export-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF');
-      }
-
-      // Get the PDF blob
-      const blob = await response.blob();
+      // Use the API client for PDF export
+      const blob = await api.exportPdf(results, exportOptions);
 
       // Create a download link
       const url = window.URL.createObjectURL(blob);

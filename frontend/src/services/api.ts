@@ -57,4 +57,30 @@ export const api = {
     const data = await response.json();
     return data;
   },
+
+  async exportPdf(results: ProjectResults, exportOptions: any): Promise<Blob> {
+    const payload = {
+      ...results,
+      export_options: exportOptions,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/export-pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new ApiError(
+        'Failed to generate PDF',
+        response.status,
+        errorData.detail || 'Unknown error'
+      );
+    }
+
+    return response.blob();
+  },
 };
