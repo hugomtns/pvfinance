@@ -57,7 +57,6 @@ export function CapexAutocomplete({ value, onChange, placeholder, onKeyPress }: 
     onChange(field);
     setShowDropdown(false);
     setHighlightedIndex(-1);
-    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

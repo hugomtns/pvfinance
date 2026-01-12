@@ -57,7 +57,6 @@ export function OpexAutocomplete({ value, onChange, placeholder, onKeyPress }: O
     onChange(field);
     setShowDropdown(false);
     setHighlightedIndex(-1);
-    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
