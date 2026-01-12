@@ -11,6 +11,34 @@ export interface CostLineItem {
   margin_percent?: number;  // CapEx-only: margin override (uses global if undefined)
 }
 
+// Template types for saving/loading cost breakdowns
+export interface CostTemplate {
+  id: string;              // UUID for deduplication
+  name: string;            // User-defined template name
+  description?: string;    // Optional description
+  created_at: string;      // ISO timestamp
+  updated_at: string;      // ISO timestamp
+  version: number;         // Schema version (start at 1)
+
+  // Template content
+  capex_items: CostLineItem[];
+  opex_items: CostLineItem[];
+  global_margin: number;
+
+  // Metadata
+  category?: string;       // User-defined category (e.g., "Solar", "Wind")
+  tags?: string[];         // Optional tags for filtering
+}
+
+export interface TemplateListItem {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  item_count: number;  // Total CAPEX + OPEX items
+}
+
 // Project input types
 export interface ProjectInputs {
   // Required inputs

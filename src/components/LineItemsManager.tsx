@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import type { CostLineItem } from '../types';
+import type { CostLineItem, CostTemplate } from '../types';
 import { AddItemModal } from './AddItemModal';
+import { TemplateManager } from './TemplateManager';
+import { Modal } from './Modal';
 import { generateCapexItems, generateOpexItems } from '../utils/designGenerator';
 import { getCapexItemCategory, getOpexItemCategory } from '../utils/categoryHelpers';
 import '../styles/LineItems.css';
@@ -40,6 +42,50 @@ export function LineItemsManager({
   // Modal state for adding items
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalCategory, setModalCategory] = useState<string>('');
+
+  // Modal states for alerts and confirmations
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'alert' | 'confirm';
+    onConfirm?: () => void;
+    confirmButtonStyle?: 'primary' | 'danger' | 'success';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'alert'
+  });
+
+  const showAlert = (title: string, message: string) => {
+    setModalState({
+      isOpen: true,
+      title,
+      message,
+      type: 'alert'
+    });
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, confirmButtonStyle: 'primary' | 'danger' | 'success' = 'primary') => {
+    setModalState({
+      isOpen: true,
+      title,
+      message,
+      type: 'confirm',
+      onConfirm,
+      confirmButtonStyle
+    });
+  };
+
+  const closeModal = () => {
+    setModalState({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'alert'
+    });
+  };
 
   const handleTabChange = (tab: 'capex' | 'opex') => {
     setActiveTab(tab);
@@ -88,7 +134,6 @@ export function LineItemsManager({
   };
 
   const capexTotals = calculateCapexTotals();
-  const totalCapex = capexTotals.withMargin; // Use total with margin for calculator
   const totalOpex = opexItems.reduce((sum, item) => sum + item.amount, 0);
 
   const handleAddCategory = () => {
@@ -100,7 +145,7 @@ export function LineItemsManager({
     // Check for duplicate (case-insensitive)
     const exists = categories.some(cat => cat.toLowerCase() === trimmedName.toLowerCase());
     if (exists) {
-      alert('Category already exists');
+      showAlert('Duplicate Category', 'Category already exists');
       return;
     }
 
@@ -111,17 +156,15 @@ export function LineItemsManager({
       setCustomOpexCategories([...customOpexCategories, trimmedName]);
     }
 
-    // Open modal to add first item to new category
+    // Just create the category - don't open modal to add item
     setNewCategoryName('');
     setShowAddCategoryForm(false);
-    setModalCategory(trimmedName);
-    setIsModalOpen(true);
   };
 
   const handleDeleteCategory = (category: string) => {
     const itemsInCategory = getCategoryItems(category);
     if (itemsInCategory.length > 0) {
-      alert(`Cannot delete category "${category}" because it contains ${itemsInCategory.length} item(s)`);
+      showAlert('Cannot Delete', `Cannot delete category "${category}" because it contains ${itemsInCategory.length} item(s)`);
       return;
     }
 
@@ -193,6 +236,25 @@ export function LineItemsManager({
     setCurrentItems(updatedItems);
   };
 
+  const handleUpdateItemQuantity = (itemToUpdate: CostLineItem, newQuantity: number) => {
+    const updatedItems = currentItems.map(item => {
+      // Find matching item using property comparison
+      const isSameName = item.name === itemToUpdate.name;
+      const isSameAmount = item.amount === itemToUpdate.amount;
+      const isSameCategory = (item.category || 'Uncategorized') === (itemToUpdate.category || 'Uncategorized');
+      const isSameUnitPrice = (item.unit_price || 0) === (itemToUpdate.unit_price || 0);
+      const isSameQuantity = (item.quantity || 0) === (itemToUpdate.quantity || 0);
+
+      if (isSameName && isSameAmount && isSameCategory && isSameUnitPrice && isSameQuantity) {
+        // Recalculate amount based on new quantity
+        const newAmount = (item.unit_price || 0) * newQuantity;
+        return { ...item, quantity: newQuantity, amount: newAmount };
+      }
+      return item;
+    });
+    setCurrentItems(updatedItems);
+  };
+
   const handleFillFromDesign = () => {
     // Generate items based on capacity
     if (isCapexTab) {
@@ -206,6 +268,33 @@ export function LineItemsManager({
     // Close modal and expand all categories
     setIsModalOpen(false);
     setCollapsedCategories(new Set());
+  };
+
+  const handleLoadTemplate = (template: CostTemplate) => {
+    const loadTemplateAction = () => {
+      // Load template data
+      onCapexItemsChange(template.capex_items);
+      onOpexItemsChange(template.opex_items);
+      onGlobalMarginChange(template.global_margin);
+
+      // Expand all categories
+      setCollapsedCategories(new Set());
+
+      showAlert('Success', `Template "${template.name}" loaded successfully!`);
+    };
+
+    // Confirm overwrite if items exist
+    const hasItems = capexItems.length > 0 || opexItems.length > 0;
+    if (hasItems) {
+      showConfirm(
+        'Confirm Load Template',
+        'Loading this template will replace all current CAPEX/OPEX items. Continue?',
+        loadTemplateAction,
+        'primary'
+      );
+    } else {
+      loadTemplateAction();
+    }
   };
 
   const formatCurrency = (value: number): string => {
@@ -252,7 +341,7 @@ export function LineItemsManager({
             </button>
           </div>
 
-          {/* Global Margin Input (CAPEX only) */}
+          {/* 1. Global Margin Input (CAPEX only) */}
           {isCapexTab && (
             <div className="margin-controls" style={{
               marginTop: 'var(--spacing-lg)',
@@ -288,35 +377,15 @@ export function LineItemsManager({
             </div>
           )}
 
-          <div style={{
-            marginTop: 'var(--spacing-md)',
-            marginBottom: 'var(--spacing-md)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 'var(--spacing-sm)'
-          }}>
-            <button
-              type="button"
-              onClick={handleFillFromDesign}
-              disabled={capacity <= 0}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: capacity > 0 ? '#10b981' : '#94a3b8',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: capacity > 0 ? 'pointer' : 'not-allowed',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                transition: 'background-color 0.2s ease'
-              }}
-              title={capacity <= 0 ? 'Please enter a valid capacity first' : `Generate ${isCapexTab ? 'CapEx' : 'OpEx'} items based on system capacity`}
-            >
-              Fill from Design
-            </button>
-          </div>
+          {/* 2. Template Manager */}
+          <TemplateManager
+            capexItems={capexItems}
+            opexItems={opexItems}
+            globalMargin={globalMargin}
+            onLoadTemplate={handleLoadTemplate}
+          />
 
-          {/* Add Category Button/Form */}
+          {/* 3. Add Category Button/Form */}
           <div style={{ marginTop: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
             {showAddCategoryForm ? (
               <div className="add-category-form">
@@ -446,7 +515,24 @@ export function LineItemsManager({
                                 {isCapexTab ? (
                                   <>
                                     <div className="line-item-amount">{formatCurrency(item.unit_price || 0)}</div>
-                                    <div className="line-item-amount">{item.quantity || 0}</div>
+                                    <div className="line-item-quantity">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={item.quantity || 0}
+                                        onChange={(e) => handleUpdateItemQuantity(item, parseFloat(e.target.value) || 0)}
+                                        className="quantity-input"
+                                        style={{
+                                          width: '65px',
+                                          padding: '0.25rem',
+                                          border: '1px solid var(--color-border)',
+                                          borderRadius: '4px',
+                                          textAlign: 'right',
+                                          fontSize: '0.8125rem'
+                                        }}
+                                      />
+                                    </div>
                                     <div className="line-item-unit">{item.unit || '-'}</div>
                                     <div className="line-item-amount">{formatCurrency(item.amount)}</div>
                                     <div className="line-item-margin">
@@ -514,6 +600,35 @@ export function LineItemsManager({
             )}
           </div>
 
+          {/* 4. Add Example Data Button */}
+          <div style={{
+            marginTop: 'var(--spacing-lg)',
+            marginBottom: 'var(--spacing-md)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 'var(--spacing-sm)'
+          }}>
+            <button
+              type="button"
+              onClick={handleFillFromDesign}
+              disabled={capacity <= 0}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: capacity > 0 ? '#10b981' : '#94a3b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: capacity > 0 ? 'pointer' : 'not-allowed',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                transition: 'background-color 0.2s ease'
+              }}
+              title={capacity <= 0 ? 'Please enter a valid capacity first' : `Generate example ${isCapexTab ? 'CapEx' : 'OpEx'} items based on system capacity`}
+            >
+              Add Example Data
+            </button>
+          </div>
+
           {/* Totals Section */}
           {isCapexTab ? (
             <div className="capex-totals" style={{
@@ -573,6 +688,18 @@ export function LineItemsManager({
           />
         </div>
       )}
+
+      {/* Modal for alerts and confirmations */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        title={modalState.title}
+        showCancel={modalState.type === 'confirm'}
+        onConfirm={modalState.type === 'confirm' ? modalState.onConfirm : undefined}
+        confirmButtonStyle={modalState.confirmButtonStyle}
+      >
+        {modalState.message}
+      </Modal>
     </div>
   );
 }
