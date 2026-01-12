@@ -476,7 +476,7 @@
 
 /* Editable quantity input */
 .quantity-input {
-  width: 65px;
+  width: 100px;
   padding: 0.25rem;
   border: 1px solid var(--color-border);
   border-radius: 4px;

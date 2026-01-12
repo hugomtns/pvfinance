@@ -524,7 +524,7 @@ export function LineItemsManager({
                                         onChange={(e) => handleUpdateItemQuantity(item, parseFloat(e.target.value) || 0)}
                                         className="quantity-input"
                                         style={{
-                                          width: '65px',
+                                          width: '100px',
                                           padding: '0.25rem',
                                           border: '1px solid var(--color-border)',
                                           borderRadius: '4px',
