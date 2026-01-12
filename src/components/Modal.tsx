@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -119,7 +119,6 @@ export function Modal({
               transition: 'background-color 0.2s'
             }}
             onMouseEnter={(e) => {
-              const color = getConfirmButtonColor();
               const hoverColor = confirmButtonStyle === 'danger' ? '#b91c1c' : confirmButtonStyle === 'success' ? '#059669' : '#2563eb';
               e.currentTarget.style.backgroundColor = hoverColor;
             }}
