@@ -7,12 +7,14 @@ import './styles/App.css';
 
 function App() {
   const [results, setResults] = useState<ProjectResults | null>(null);
+  const [inputs, setInputs] = useState<ProjectInputs | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleCalculate = async (inputs: ProjectInputs) => {
     setIsLoading(true);
     setError(null);
+    setInputs(inputs); // Store inputs for later use
 
     try {
       // Run calculation in browser (no API call)
@@ -21,6 +23,7 @@ function App() {
       // Generate all results
       const summary = calculator.generateSummaryReport();
       const yearlyData = calculator.generateYearlyData();
+      const auditLog = calculator.generateAuditLog();
 
       // Build cost breakdown if cost_items provided
       const costItemsBreakdown = inputs.cost_items ? {
@@ -37,7 +40,7 @@ function App() {
         ...summary,
         yearly_data: yearlyData,
         cost_items_breakdown: costItemsBreakdown,
-        audit_log: undefined // Not implemented in frontend yet
+        audit_log: auditLog
       };
 
       setResults(calculatedResults);
@@ -88,7 +91,7 @@ function App() {
 
       <InputForm onSubmit={handleCalculate} isLoading={isLoading} />
 
-      {results && <Results results={results} />}
+      {results && inputs && <Results results={results} inputs={inputs} />}
     </div>
   );
 }

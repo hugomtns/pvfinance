@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import type { ProjectResults } from '../types';
+import type { ProjectResults, ProjectInputs, MonthlyDataPoint } from '../types';
 import { YearlyDataTable } from './YearlyDataTable';
+import { YearlyCharts } from './YearlyCharts';
 import { AuditLogView } from './AuditLogView';
-import { PDFReportGenerator } from '../lib/pdf';
+import { PDFReportGenerator } from "../lib/pdf";
+import type { PDFExportOptions } from '../lib/pdf';
+import { SolarFinanceCalculator } from '../lib/calculator';
 import '../styles/Results.css';
 
 interface ResultsProps {
   results: ProjectResults;
+  inputs: ProjectInputs;
 }
 
 type TabType = 'summary' | 'calculations';
@@ -38,7 +42,7 @@ const getAssessmentClass = (assessment: string): string => {
   return '';
 };
 
-export function Results({ results }: ResultsProps) {
+export function Results({ results, inputs }: ResultsProps) {
   const { project_summary, financing_structure, key_metrics, first_year_operations, assessment, yearly_data } =
     results;
 
@@ -46,6 +50,15 @@ export function Results({ results }: ResultsProps) {
   const [exportError, setExportError] = useState<string | null>(null);
   const [showYearlyTable, setShowYearlyTable] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('summary');
+  const [cashFlowViewMode, setCashFlowViewMode] = useState<'yearly' | 'monthly'>('yearly');
+  const [monthlyData, setMonthlyData] = useState<MonthlyDataPoint[] | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportOptions, setExportOptions] = useState<PDFExportOptions>({
+    includeYearlyChart: true,
+    includeYearlyTable: true,
+    includeMonthlyChart: false,
+    includeMonthlyTable: false,
+  });
 
   // Debug: Check if yearly_data exists
   console.log('Results received, yearly_data exists:', !!yearly_data);
@@ -53,14 +66,26 @@ export function Results({ results }: ResultsProps) {
     console.log('Yearly data years:', yearly_data.years.length);
   }
 
+  const handleModeToggle = (mode: 'yearly' | 'monthly') => {
+    setCashFlowViewMode(mode);
+
+    // Generate monthly data on first toggle
+    if (mode === 'monthly' && !monthlyData) {
+      const calculator = new SolarFinanceCalculator(inputs);
+      const generated = calculator.generateMonthlyData();
+      setMonthlyData(generated);
+    }
+  };
+
   const handleExportPDF = async () => {
     setIsExporting(true);
     setExportError(null);
+    setShowExportModal(false);
 
     try {
-      // Generate PDF in browser
+      // Generate PDF in browser with options
       const pdfGenerator = new PDFReportGenerator();
-      const pdfBlob = pdfGenerator.generateReport(results);
+      const pdfBlob = await pdfGenerator.generateReport(results, exportOptions);
 
       // Create a download link
       const url = window.URL.createObjectURL(pdfBlob);
@@ -84,7 +109,7 @@ export function Results({ results }: ResultsProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
         <h2 style={{ margin: 0 }}>Project Financial Analysis</h2>
         <button
-          onClick={handleExportPDF}
+          onClick={() => setShowExportModal(true)}
           disabled={isExporting}
           className="btn btn-primary"
           style={{ padding: '0.625rem 1.25rem' }}
@@ -272,6 +297,34 @@ export function Results({ results }: ResultsProps) {
         </div>
       </div>
 
+      {/* Cash Flow View Toggle */}
+      {results.yearly_data && (
+        <div className="results-section">
+          <div className="view-mode-toggle">
+            <button
+              className={`toggle-btn ${cashFlowViewMode === 'yearly' ? 'active' : ''}`}
+              onClick={() => handleModeToggle('yearly')}
+            >
+              Yearly View
+            </button>
+            <button
+              className={`toggle-btn ${cashFlowViewMode === 'monthly' ? 'active' : ''}`}
+              onClick={() => handleModeToggle('monthly')}
+            >
+              Monthly View
+            </button>
+          </div>
+
+          {/* Cash Flow Charts */}
+          <YearlyCharts
+            data={results.yearly_data}
+            monthlyData={monthlyData}
+            mode={cashFlowViewMode}
+            equityPaybackYears={key_metrics.equity_payback_years}
+          />
+        </div>
+      )}
+
       {/* Yearly Projections Table */}
       {results.yearly_data && (
         <div className="results-section collapsible-section">
@@ -290,7 +343,11 @@ export function Results({ results }: ResultsProps) {
           <div className={`collapsible-content ${showYearlyTable ? 'expanded' : ''}`}>
             {showYearlyTable && (
               <div className="collapsible-content-inner">
-                <YearlyDataTable data={results.yearly_data} />
+                <YearlyDataTable
+                  data={results.yearly_data}
+                  monthlyData={monthlyData}
+                  mode={cashFlowViewMode}
+                />
               </div>
             )}
           </div>
@@ -322,6 +379,58 @@ export function Results({ results }: ResultsProps) {
       {activeTab === 'calculations' && results.audit_log && (
         <div className="tab-content">
           <AuditLogView data={results.audit_log} />
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>PDF Export Options</h3>
+            <div className="export-options">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={exportOptions.includeYearlyChart}
+                  onChange={(e) => setExportOptions({...exportOptions, includeYearlyChart: e.target.checked})}
+                />
+                Include Yearly Cash Flow Chart
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={exportOptions.includeYearlyTable}
+                  onChange={(e) => setExportOptions({...exportOptions, includeYearlyTable: e.target.checked})}
+                />
+                Include Yearly Data Table
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={exportOptions.includeMonthlyChart}
+                  onChange={(e) => setExportOptions({...exportOptions, includeMonthlyChart: e.target.checked})}
+                  disabled={!monthlyData}
+                />
+                Include Monthly Cash Flow Chart {!monthlyData && '(Toggle to monthly view first)'}
+              </label>
+              <label className="disabled-option">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  disabled={true}
+                />
+                Include Monthly Data Table (Not yet implemented)
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setShowExportModal(false)} className="btn btn-secondary">
+                Cancel
+              </button>
+              <button onClick={handleExportPDF} disabled={isExporting} className="btn btn-primary">
+                {isExporting ? 'Generating...' : 'Generate PDF'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

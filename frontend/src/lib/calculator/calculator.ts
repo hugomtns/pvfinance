@@ -6,7 +6,8 @@
  */
 
 import { irr, pmt } from './financial';
-import type { ProjectInputs, ProjectResults, ProjectSummary, FinancingStructure, KeyMetrics, FirstYearOperations, Assessment, YearlyData } from '../../types';
+import { NORTHERN_HEMISPHERE_MONTHLY_FACTORS, MONTH_NAMES } from './constants';
+import type { ProjectInputs, ProjectResults, ProjectSummary, FinancingStructure, KeyMetrics, FirstYearOperations, Assessment, YearlyData, MonthlyDataPoint, AuditLog, FormulaReference, CalculationStep } from '../../types';
 
 export class SolarFinanceCalculator {
   private inputs: ProjectInputs;
@@ -364,7 +365,7 @@ export class SolarFinanceCalculator {
   /**
    * Generate comprehensive project summary
    */
-  generateSummaryReport(): Omit<ProjectResults, 'yearly_data' | 'audit_log' | 'cost_items_breakdown'> {
+  generateSummaryReport(): Omit<ProjectResults, 'yearly_data' | 'monthly_data' | 'audit_log' | 'cost_items_breakdown'> {
     // Calculate all intermediates
     const totalCapex = this.calcTotalCapEx();
     const finalDebt = this.calcFinalDebt();
@@ -418,7 +419,9 @@ export class SolarFinanceCalculator {
       min_dscr: minDSCR!,
       avg_dscr: avgDSCR!,
       project_npv: projectNPV,
-      ppa_price: this.inputs.ppa_price
+      ppa_price: this.inputs.ppa_price,
+      equity_payback_years: this.calcEquityPaybackPeriod(),
+      project_payback_years: this.calcProjectPaybackPeriod()
     };
 
     const firstYearOperations: FirstYearOperations = {
@@ -492,6 +495,450 @@ export class SolarFinanceCalculator {
       debt_service: debtService,
       dscr,
       cumulative_fcf_to_equity: cumulativeFCFToEquity
+    };
+  }
+
+  /**
+   * Monthly Calculations
+   * These methods distribute annual values across 12 months using seasonal factors
+   */
+
+  calcEnergyMonthT(year: number, month: number): number {
+    const annualEnergy = this.calcEnergyYearT(year);
+    const seasonalFactor = NORTHERN_HEMISPHERE_MONTHLY_FACTORS[month - 1];
+    return annualEnergy * seasonalFactor;
+  }
+
+  calcRevenueMonthT(year: number, month: number): number {
+    const monthlyEnergy = this.calcEnergyMonthT(year, month);
+    const ppaPriceYear = this.inputs.ppa_price * Math.pow(1 + this.inputs.ppa_escalation, year - 1);
+    return monthlyEnergy * ppaPriceYear;
+  }
+
+  calcOMMonthT(year: number, _month: number): number {
+    const annualOM = this.calcOMYearT(year);
+    return annualOM / 12; // Evenly distributed
+  }
+
+  calcEBITDAMonthT(year: number, month: number): number {
+    const monthlyRevenue = this.calcRevenueMonthT(year, month);
+    const monthlyOM = this.calcOMMonthT(year, month);
+    return monthlyRevenue - monthlyOM;
+  }
+
+  calcCFADSMonthT(year: number, month: number): number {
+    const monthlyEBITDA = this.calcEBITDAMonthT(year, month);
+    return monthlyEBITDA * (1 - this.inputs.tax_rate);
+  }
+
+  calcDebtServiceMonthT(year: number, _month: number): number {
+    if (year > this.inputs.debt_tenor) {
+      return 0;
+    }
+    const annualDS = this.calcAnnualDebtService();
+    return annualDS / 12; // Evenly distributed
+  }
+
+  calcFCFtoEquityMonthT(year: number, month: number): number {
+    const monthlyCFADS = this.calcCFADSMonthT(year, month);
+    const monthlyDS = this.calcDebtServiceMonthT(year, month);
+    return monthlyCFADS - monthlyDS;
+  }
+
+  /**
+   * Generate monthly data for all years
+   */
+  generateMonthlyData(): MonthlyDataPoint[] {
+    const monthlyData: MonthlyDataPoint[] = [];
+    const equity = this.calcEquity();
+    let cumulativeFCF = -equity;
+
+    for (let year = 1; year <= this.inputs.project_lifetime; year++) {
+      for (let month = 1; month <= 12; month++) {
+        const fcf = this.calcFCFtoEquityMonthT(year, month);
+        cumulativeFCF += fcf;
+
+        monthlyData.push({
+          year,
+          month,
+          month_name: MONTH_NAMES[month - 1],
+          energy_production_mwh: this.calcEnergyMonthT(year, month),
+          revenue: this.calcRevenueMonthT(year, month),
+          om_costs: this.calcOMMonthT(year, month),
+          ebitda: this.calcEBITDAMonthT(year, month),
+          cfads: this.calcCFADSMonthT(year, month),
+          debt_service: this.calcDebtServiceMonthT(year, month),
+          fcf_to_equity: fcf,
+          cumulative_fcf_to_equity: cumulativeFCF
+        });
+      }
+    }
+
+    return monthlyData;
+  }
+
+  /**
+   * Calculate equity payback period (when cumulative FCF to equity becomes positive)
+   * Returns fractional years using linear interpolation, or null if never breaks even
+   */
+  calcEquityPaybackPeriod(): number | null {
+    const equity = this.calcEquity();
+    let cumulativeFCF = -equity;
+    let prevCumulative = cumulativeFCF;
+
+    for (let year = 1; year <= this.inputs.project_lifetime; year++) {
+      const fcf = this.calcFCFtoEquityYearT(year);
+      prevCumulative = cumulativeFCF;
+      cumulativeFCF += fcf;
+
+      // Check for zero crossing
+      if (prevCumulative < 0 && cumulativeFCF >= 0) {
+        // Linear interpolation to find fractional year
+        const fraction = -prevCumulative / fcf;
+        return year - 1 + fraction;
+      }
+    }
+
+    // Check if breaks even at end
+    return cumulativeFCF >= 0 ? this.inputs.project_lifetime : null;
+  }
+
+  /**
+   * Calculate project payback period (when cumulative CFADS exceeds total CapEx)
+   * Returns fractional years using linear interpolation, or null if never breaks even
+   */
+  calcProjectPaybackPeriod(): number | null {
+    const totalCapex = this.calcTotalCapEx();
+    let cumulativeCFADS = 0;
+    let prevCumulative = 0;
+
+    for (let year = 1; year <= this.inputs.project_lifetime; year++) {
+      const cfads = this.calcCFADSYearT(year);
+      prevCumulative = cumulativeCFADS;
+      cumulativeCFADS += cfads;
+
+      // Check for zero crossing
+      if (prevCumulative < totalCapex && cumulativeCFADS >= totalCapex) {
+        // Linear interpolation
+        const fraction = (totalCapex - prevCumulative) / cfads;
+        return year - 1 + fraction;
+      }
+    }
+
+    return cumulativeCFADS >= totalCapex ? this.inputs.project_lifetime : null;
+  }
+
+  /**
+   * Generate detailed audit log with formulas, calculation steps, and binding constraint analysis
+   */
+  generateAuditLog(): AuditLog {
+    // Helper function for formatting currency
+    const formatCurrency = (value: number): string => {
+      return `€${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    };
+
+    // Build formulas reference (5 categories)
+    const formulasReference: FormulaReference[] = [
+      {
+        category: "Energy Production",
+        formulas: [
+          "Energy_year_t = P50_Year_0_Yield × (1 - Degradation_Rate)^(t-1)",
+          "Monthly_Energy = Annual_Energy × Seasonal_Factor[month]",
+          "Capacity_Factor = P50_Year_0_Yield / (Capacity × 8760 hours)"
+        ]
+      },
+      {
+        category: "Revenue & Costs",
+        formulas: [
+          "Revenue_year_t = Energy_year_t × PPA_Price × (1 + PPA_Escalation)^(t-1)",
+          "OM_year_t = Capacity × OM_Cost_per_MW × (1 + OM_Escalation)^(t-1)",
+          "EBITDA = Revenue - OM_Costs"
+        ]
+      },
+      {
+        category: "Cash Flows",
+        formulas: [
+          "CFADS = EBITDA × (1 - Tax_Rate)",
+          "FCF_to_Equity = CFADS - Debt_Service",
+          "Debt_Service = PMT(Interest_Rate, Debt_Tenor, -Debt_Amount)"
+        ]
+      },
+      {
+        category: "Debt Sizing",
+        formulas: [
+          "PV_of_CFADS = Sum of [CFADS_t / (1 + Interest_Rate)^t] for t=1 to Debt_Tenor",
+          "Max_Debt_by_DSCR = PV_of_CFADS / Target_DSCR",
+          "Max_Debt_by_Gearing = Total_CapEx × Gearing_Ratio",
+          "Final_Debt = MIN(Max_Debt_by_DSCR, Max_Debt_by_Gearing)",
+          "Equity = Total_CapEx - Final_Debt",
+          "DSCR_year_t = CFADS_year_t / Annual_Debt_Service"
+        ]
+      },
+      {
+        category: "Returns & Metrics",
+        formulas: [
+          "Project_IRR: NPV([-CapEx, CFADS_1, ..., CFADS_n]) = 0",
+          "Equity_IRR: NPV([-Equity, FCF_1, ..., FCF_n]) = 0",
+          "LCOE = NPV(All_Costs) / NPV(All_Energy)",
+          "Project_NPV = NPV([-CapEx, CFADS_1, ..., CFADS_n]) at Discount_Rate",
+          "Equity_Payback = Year when Cumulative_FCF_to_Equity ≥ 0",
+          "Project_Payback = Year when Cumulative_CFADS ≥ Total_CapEx"
+        ]
+      }
+    ];
+
+    // Build calculation steps with Year 1 examples
+    const totalCapex = this.calcTotalCapEx();
+    const capacityFactor = this.calcCapacityFactor();
+    const energyYear1 = this.calcEnergyYearT(1);
+    const revenueYear1 = this.calcRevenueYearT(1);
+    const omYear1 = this.calcOMYearT(1);
+    const ebitdaYear1 = this.calcEBITDAYearT(1);
+    const cfadsYear1 = this.calcCFADSYearT(1);
+    const pvCFADS = this.calcPVofCFADS();
+    const maxDebtDSCR = this.calcMaxDebtByDSCR();
+    const maxDebtGearing = this.calcMaxDebtByGearing();
+    const finalDebt = this.calcFinalDebt();
+    const equity = this.calcEquity();
+    const annualDS = this.calcAnnualDebtService();
+    const fcfYear1 = this.calcFCFtoEquityYearT(1);
+    const dscrYear1 = this.calcDSCRYearT(1);
+    const projectIRR = this.calcProjectIRR();
+    const equityIRR = this.calcEquityIRR();
+    const lcoe = this.calcLCOE();
+    const minDSCR = this.calcMinimumDSCR();
+    const avgDSCR = this.calcAverageDSCR();
+    const projectNPV = this.calcProjectNPV();
+
+    const calculationSteps: CalculationStep[] = [
+      {
+        step_number: 1,
+        name: "Total CapEx",
+        formula: "Total_CapEx = Capacity × CapEx_per_MW",
+        inputs: { Capacity: this.inputs.capacity, CapEx_per_MW: this.inputs.capex_per_mw! },
+        calculation: `${this.inputs.capacity} MW × ${formatCurrency(this.inputs.capex_per_mw!)}/MW`,
+        result: totalCapex,
+        unit: "€"
+      },
+      {
+        step_number: 2,
+        name: "Capacity Factor",
+        formula: "CF = P50_Year_0_Yield / (Capacity × 8760)",
+        inputs: { P50_Yield: this.inputs.p50_year_0_yield, Capacity: this.inputs.capacity },
+        calculation: `${this.inputs.p50_year_0_yield.toLocaleString()} MWh / (${this.inputs.capacity} MW × 8760 h)`,
+        result: capacityFactor,
+        unit: "%"
+      },
+      {
+        step_number: 3,
+        name: "Energy Production (Year 1)",
+        formula: "Energy_1 = P50_Year_0_Yield",
+        inputs: { P50_Year_0_Yield: this.inputs.p50_year_0_yield },
+        calculation: `${this.inputs.p50_year_0_yield.toLocaleString()} MWh`,
+        result: energyYear1,
+        unit: "MWh"
+      },
+      {
+        step_number: 4,
+        name: "Revenue (Year 1)",
+        formula: "Revenue_1 = Energy_1 × PPA_Price",
+        inputs: { Energy: energyYear1, PPA_Price: this.inputs.ppa_price },
+        calculation: `${energyYear1.toLocaleString()} MWh × €${this.inputs.ppa_price}/MWh`,
+        result: revenueYear1,
+        unit: "€"
+      },
+      {
+        step_number: 5,
+        name: "O&M Costs (Year 1)",
+        formula: "OM_1 = Capacity × OM_Cost_per_MW",
+        inputs: { Capacity: this.inputs.capacity, OM_per_MW: this.inputs.om_cost_per_mw_year! },
+        calculation: `${this.inputs.capacity} MW × ${formatCurrency(this.inputs.om_cost_per_mw_year!)}/MW`,
+        result: omYear1,
+        unit: "€"
+      },
+      {
+        step_number: 6,
+        name: "EBITDA (Year 1)",
+        formula: "EBITDA_1 = Revenue_1 - OM_1",
+        inputs: { Revenue: revenueYear1, OM: omYear1 },
+        calculation: `${formatCurrency(revenueYear1)} - ${formatCurrency(omYear1)}`,
+        result: ebitdaYear1,
+        unit: "€"
+      },
+      {
+        step_number: 7,
+        name: "CFADS (Year 1)",
+        formula: "CFADS_1 = EBITDA_1 × (1 - Tax_Rate)",
+        inputs: { EBITDA: ebitdaYear1, Tax_Rate: this.inputs.tax_rate },
+        calculation: `${formatCurrency(ebitdaYear1)} × (1 - ${(this.inputs.tax_rate * 100).toFixed(1)}%)`,
+        result: cfadsYear1,
+        unit: "€"
+      },
+      {
+        step_number: 8,
+        name: "PV of CFADS (during debt tenor)",
+        formula: "PV_CFADS = Sum[CFADS_t / (1+r)^t]",
+        inputs: { Debt_Tenor: this.inputs.debt_tenor, Interest_Rate: this.inputs.interest_rate },
+        calculation: `Sum of discounted CFADS for ${this.inputs.debt_tenor} years`,
+        result: pvCFADS,
+        unit: "€"
+      },
+      {
+        step_number: 9,
+        name: "Max Debt by DSCR",
+        formula: "Max_Debt = PV_CFADS / Target_DSCR",
+        inputs: { PV_CFADS: pvCFADS, Target_DSCR: this.inputs.target_dscr },
+        calculation: `${formatCurrency(pvCFADS)} / ${this.inputs.target_dscr.toFixed(2)}`,
+        result: maxDebtDSCR,
+        unit: "€"
+      },
+      {
+        step_number: 10,
+        name: "Max Debt by Gearing",
+        formula: "Max_Debt = Total_CapEx × Gearing_Ratio",
+        inputs: { Total_CapEx: totalCapex, Gearing_Ratio: this.inputs.gearing_ratio },
+        calculation: `${formatCurrency(totalCapex)} × ${(this.inputs.gearing_ratio * 100).toFixed(0)}%`,
+        result: maxDebtGearing,
+        unit: "€"
+      },
+      {
+        step_number: 11,
+        name: "Final Debt (binding constraint)",
+        formula: "Debt = MIN(Max_by_DSCR, Max_by_Gearing)",
+        inputs: { Max_by_DSCR: maxDebtDSCR, Max_by_Gearing: maxDebtGearing },
+        calculation: `MIN(${formatCurrency(maxDebtDSCR)}, ${formatCurrency(maxDebtGearing)})`,
+        result: finalDebt,
+        unit: "€"
+      },
+      {
+        step_number: 12,
+        name: "Equity",
+        formula: "Equity = Total_CapEx - Debt",
+        inputs: { Total_CapEx: totalCapex, Debt: finalDebt },
+        calculation: `${formatCurrency(totalCapex)} - ${formatCurrency(finalDebt)}`,
+        result: equity,
+        unit: "€"
+      },
+      {
+        step_number: 13,
+        name: "Annual Debt Service",
+        formula: "DS = PMT(Interest_Rate, Debt_Tenor, -Debt)",
+        inputs: { Interest_Rate: this.inputs.interest_rate, Debt_Tenor: this.inputs.debt_tenor, Debt: finalDebt },
+        calculation: `PMT(${(this.inputs.interest_rate * 100).toFixed(2)}%, ${this.inputs.debt_tenor} yrs, ${formatCurrency(finalDebt)})`,
+        result: annualDS,
+        unit: "€"
+      },
+      {
+        step_number: 14,
+        name: "FCF to Equity (Year 1)",
+        formula: "FCF_1 = CFADS_1 - Debt_Service",
+        inputs: { CFADS: cfadsYear1, Debt_Service: annualDS },
+        calculation: `${formatCurrency(cfadsYear1)} - ${formatCurrency(annualDS)}`,
+        result: fcfYear1,
+        unit: "€"
+      },
+      {
+        step_number: 15,
+        name: "DSCR (Year 1)",
+        formula: "DSCR_1 = CFADS_1 / Debt_Service",
+        inputs: { CFADS: cfadsYear1, Debt_Service: annualDS },
+        calculation: `${formatCurrency(cfadsYear1)} / ${formatCurrency(annualDS)}`,
+        result: dscrYear1 || 0,
+        unit: "x"
+      },
+      {
+        step_number: 16,
+        name: "Project IRR",
+        formula: "IRR: NPV([-CapEx, CFADS...]) = 0",
+        inputs: { Total_CapEx: totalCapex, Project_Lifetime: this.inputs.project_lifetime },
+        calculation: `Newton's method on ${this.inputs.project_lifetime}-year cash flows`,
+        result: projectIRR,
+        unit: "%"
+      },
+      {
+        step_number: 17,
+        name: "Equity IRR",
+        formula: "IRR: NPV([-Equity, FCF...]) = 0",
+        inputs: { Equity: equity, Project_Lifetime: this.inputs.project_lifetime },
+        calculation: `Newton's method on ${this.inputs.project_lifetime}-year cash flows`,
+        result: equityIRR,
+        unit: "%"
+      },
+      {
+        step_number: 18,
+        name: "LCOE",
+        formula: "LCOE = NPV(Costs) / NPV(Energy)",
+        inputs: { Discount_Rate: this.inputs.discount_rate },
+        calculation: `NPV of costs / NPV of energy at ${(this.inputs.discount_rate * 100).toFixed(0)}%`,
+        result: lcoe,
+        unit: "€/MWh"
+      },
+      {
+        step_number: 19,
+        name: "Minimum DSCR",
+        formula: "Min_DSCR = MIN(DSCR_1, ..., DSCR_n)",
+        inputs: { Debt_Tenor: this.inputs.debt_tenor },
+        calculation: `Minimum DSCR over ${this.inputs.debt_tenor} years`,
+        result: minDSCR || 0,
+        unit: "x"
+      },
+      {
+        step_number: 20,
+        name: "Average DSCR",
+        formula: "Avg_DSCR = AVG(DSCR_1, ..., DSCR_n)",
+        inputs: { Debt_Tenor: this.inputs.debt_tenor },
+        calculation: `Average DSCR over ${this.inputs.debt_tenor} years`,
+        result: avgDSCR || 0,
+        unit: "x"
+      },
+      {
+        step_number: 21,
+        name: "Project NPV",
+        formula: "NPV = Sum[CFADS_t / (1+r)^t] - CapEx",
+        inputs: { Discount_Rate: this.inputs.discount_rate },
+        calculation: `NPV at ${(this.inputs.discount_rate * 100).toFixed(0)}% discount rate`,
+        result: projectNPV,
+        unit: "€"
+      }
+    ];
+
+    // Binding constraint analysis
+    const bindingConstraint = {
+      debt_sizing: {
+        max_by_dscr: maxDebtDSCR,
+        max_by_gearing: maxDebtGearing,
+        chosen: finalDebt,
+        constraint: maxDebtDSCR < maxDebtGearing ? 'DSCR' : 'Gearing',
+        reason: maxDebtDSCR < maxDebtGearing
+          ? `DSCR constraint is binding. The project's cash flows can only support ${formatCurrency(maxDebtDSCR)} of debt while maintaining the target DSCR of ${this.inputs.target_dscr.toFixed(2)}x. The gearing constraint would have allowed ${formatCurrency(maxDebtGearing)}.`
+          : `Gearing constraint is binding. Lenders limit debt to ${(this.inputs.gearing_ratio * 100).toFixed(0)}% of total CapEx (${formatCurrency(maxDebtGearing)}). The DSCR constraint would have allowed ${formatCurrency(maxDebtDSCR)}.`
+      }
+    };
+
+    // Key assumptions
+    const keyAssumptions: Record<string, number> = {
+      'Capacity (MW)': this.inputs.capacity,
+      'P50 Year 0 Yield (MWh)': this.inputs.p50_year_0_yield,
+      'CapEx per MW (€)': this.inputs.capex_per_mw!,
+      'PPA Price (€/MWh)': this.inputs.ppa_price,
+      'O&M per MW per Year (€)': this.inputs.om_cost_per_mw_year!,
+      'Degradation Rate (%)': this.inputs.degradation_rate * 100,
+      'PPA Escalation (%)': this.inputs.ppa_escalation * 100,
+      'O&M Escalation (%)': this.inputs.om_escalation * 100,
+      'Gearing Ratio (%)': this.inputs.gearing_ratio * 100,
+      'Interest Rate (%)': this.inputs.interest_rate * 100,
+      'Debt Tenor (years)': this.inputs.debt_tenor,
+      'Target DSCR (x)': this.inputs.target_dscr,
+      'Tax Rate (%)': this.inputs.tax_rate * 100,
+      'Discount Rate (%)': this.inputs.discount_rate * 100,
+      'Project Lifetime (years)': this.inputs.project_lifetime
+    };
+
+    return {
+      formulas_reference: formulasReference,
+      calculation_steps: calculationSteps,
+      binding_constraint: bindingConstraint,
+      key_assumptions: keyAssumptions
     };
   }
 

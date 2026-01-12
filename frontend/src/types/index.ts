@@ -71,6 +71,8 @@ export interface KeyMetrics {
   avg_dscr: number;
   project_npv: number;
   ppa_price: number;
+  equity_payback_years: number | null;
+  project_payback_years: number | null;
 }
 
 export interface FirstYearOperations {
@@ -105,6 +107,20 @@ export interface YearlyData {
   debt_service: number[];
   dscr: (number | null)[];
   cumulative_fcf_to_equity: number[];
+}
+
+export interface MonthlyDataPoint {
+  year: number;
+  month: number;
+  month_name: string;
+  energy_production_mwh: number;
+  revenue: number;
+  om_costs: number;
+  ebitda: number;
+  cfads: number;
+  debt_service: number;
+  fcf_to_equity: number;
+  cumulative_fcf_to_equity: number;
 }
 
 export interface CalculationStep {
@@ -145,6 +161,7 @@ export interface ProjectResults {
   assessment: Assessment;
   cost_items_breakdown?: CostItemsBreakdown;
   yearly_data?: YearlyData;
+  monthly_data?: MonthlyDataPoint[];
   audit_log?: AuditLog;
 }
 

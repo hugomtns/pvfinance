@@ -97,6 +97,23 @@
   font-weight: 600;
 }
 
+/* Monthly table styles */
+.year-header-row {
+  background: var(--color-bg-secondary) !important;
+  font-weight: bold;
+}
+
+.year-header-row td {
+  text-align: left !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  border-top: 2px solid var(--color-border);
+  font-size: 0.9375rem;
+}
+
+.year-header-row:hover {
+  background: var(--color-bg-secondary) !important;
+}
+
 /* Chart Styles */
 
 .yearly-charts-container {
