@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { CostLineItem } from '../types';
 import { CapexAutocomplete } from './CapexAutocomplete';
 import { OpexAutocomplete } from './OpexAutocomplete';
+import { DEFAULT_CAPEX_UNITS, DEFAULT_OPEX_UNITS } from '../data/defaultUnits';
 import '../styles/Modal.css';
 
 interface AddItemModalProps {
@@ -14,6 +15,7 @@ interface AddItemModalProps {
 
 export function AddItemModal({ isOpen, onClose, onAdd, category, isCapex }: AddItemModalProps) {
   const [newItemName, setNewItemName] = useState('');
+  const [newItemUnit, setNewItemUnit] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
 
@@ -21,10 +23,22 @@ export function AddItemModal({ isOpen, onClose, onAdd, category, isCapex }: AddI
   useEffect(() => {
     if (isOpen) {
       setNewItemName('');
+      setNewItemUnit('');
       setNewItemAmount('');
       setNewItemQuantity('');
     }
   }, [isOpen]);
+
+  // Auto-fill unit when item name changes
+  const handleItemNameChange = (name: string) => {
+    setNewItemName(name);
+
+    // Auto-fill unit if it's a predefined item
+    const defaultUnit = isCapex ? DEFAULT_CAPEX_UNITS[name] : DEFAULT_OPEX_UNITS[name];
+    if (defaultUnit) {
+      setNewItemUnit(defaultUnit);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -48,6 +62,7 @@ export function AddItemModal({ isOpen, onClose, onAdd, category, isCapex }: AddI
         amount: unitPrice * quantity,
         is_capex: true,
         category: category,
+        unit: newItemUnit.trim() || undefined,
         unit_price: unitPrice,
         quantity: quantity,
       };
@@ -63,6 +78,7 @@ export function AddItemModal({ isOpen, onClose, onAdd, category, isCapex }: AddI
         amount,
         is_capex: false,
         category: category,
+        unit: newItemUnit.trim() || undefined,
       };
     }
 
@@ -99,18 +115,29 @@ export function AddItemModal({ isOpen, onClose, onAdd, category, isCapex }: AddI
             {isCapex ? (
               <CapexAutocomplete
                 value={newItemName}
-                onChange={setNewItemName}
+                onChange={handleItemNameChange}
                 placeholder="Type to search or enter custom name"
                 onKeyPress={handleKeyPress}
               />
             ) : (
               <OpexAutocomplete
                 value={newItemName}
-                onChange={setNewItemName}
+                onChange={handleItemNameChange}
                 placeholder="Type to search or enter custom name"
                 onKeyPress={handleKeyPress}
               />
             )}
+          </div>
+
+          <div className="modal-form-group">
+            <label>Unit (optional)</label>
+            <input
+              type="text"
+              placeholder="e.g., MW, panels, meters, units"
+              value={newItemUnit}
+              onChange={(e) => setNewItemUnit(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
           </div>
 
           {isCapex ? (

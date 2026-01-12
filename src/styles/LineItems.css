@@ -95,6 +95,7 @@
 }
 
 .line-item-name,
+.line-item-unit,
 .line-item-amount,
 .line-item-escalation {
   font-size: 0.875rem;
@@ -103,6 +104,12 @@
 .line-item-name {
   font-weight: 500;
   color: var(--color-text);
+}
+
+.line-item-unit {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  font-size: 0.8125rem;
 }
 
 .line-item-amount {
