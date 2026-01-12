@@ -24,7 +24,9 @@
       "Bash(dir:*)",
       "Bash(taskkill:*)",
       "Bash(tasklist:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
