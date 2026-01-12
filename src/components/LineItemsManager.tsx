@@ -12,6 +12,8 @@ interface LineItemsManagerProps {
   opexItems: CostLineItem[];
   onCapexItemsChange: (items: CostLineItem[]) => void;
   onOpexItemsChange: (items: CostLineItem[]) => void;
+  globalMargin: number;
+  onGlobalMarginChange: (margin: number) => void;
   capacity: number; // System capacity in MW
 }
 
@@ -22,6 +24,8 @@ export function LineItemsManager({
   opexItems,
   onCapexItemsChange,
   onOpexItemsChange,
+  globalMargin,
+  onGlobalMarginChange,
   capacity,
 }: LineItemsManagerProps) {
   const [activeTab, setActiveTab] = useState<'capex' | 'opex'>('capex');
@@ -36,9 +40,6 @@ export function LineItemsManager({
   // Modal state for adding items
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalCategory, setModalCategory] = useState<string>('');
-
-  // Global margin state (CAPEX only)
-  const [globalMargin, setGlobalMargin] = useState<number>(0);
 
   const handleTabChange = (tab: 'capex' | 'opex') => {
     setActiveTab(tab);
@@ -271,7 +272,7 @@ export function LineItemsManager({
                 max="100"
                 step="0.1"
                 value={globalMargin}
-                onChange={(e) => setGlobalMargin(parseFloat(e.target.value) || 0)}
+                onChange={(e) => onGlobalMarginChange(parseFloat(e.target.value) || 0)}
                 placeholder="0"
                 style={{
                   width: '100px',

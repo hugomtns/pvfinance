@@ -11,7 +11,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleCalculate = async (inputs: ProjectInputs) => {
+  const handleCalculate = async (inputs: ProjectInputs, metadata?: { globalMargin?: number }) => {
     setIsLoading(true);
     setError(null);
     setInputs(inputs); // Store inputs for later use
@@ -33,7 +33,8 @@ function App() {
           .reduce((sum, item) => sum + item.amount, 0),
         total_opex_year_1: inputs.cost_items
           .filter(item => !item.is_capex)
-          .reduce((sum, item) => sum + item.amount, 0)
+          .reduce((sum, item) => sum + item.amount, 0),
+        global_margin: metadata?.globalMargin
       } : undefined;
 
       const calculatedResults: ProjectResults = {

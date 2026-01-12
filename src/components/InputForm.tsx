@@ -6,7 +6,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import '../styles/InputForm.css';
 
 interface InputFormProps {
-  onSubmit: (inputs: ProjectInputs) => void;
+  onSubmit: (inputs: ProjectInputs, metadata?: { globalMargin?: number }) => void;
   isLoading: boolean;
 }
 
@@ -15,6 +15,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
   const [useLineItems, setUseLineItems] = useState(false);
   const [capexItems, setCapexItems] = useState<CostLineItem[]>([]);
   const [opexItems, setOpexItems] = useState<CostLineItem[]>([]);
+  const [globalMargin, setGlobalMargin] = useState<number>(0);
 
   const handleChange = (field: keyof ProjectInputs, value: string) => {
     setInputs((prev) => ({
@@ -32,7 +33,7 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
       cost_items: useLineItems ? [...capexItems, ...opexItems] : undefined,
     };
 
-    onSubmit(submissionInputs);
+    onSubmit(submissionInputs, { globalMargin: useLineItems ? globalMargin : undefined });
   };
 
   const handleReset = () => {
@@ -145,6 +146,8 @@ export function InputForm({ onSubmit, isLoading }: InputFormProps) {
           opexItems={opexItems}
           onCapexItemsChange={setCapexItems}
           onOpexItemsChange={setOpexItems}
+          globalMargin={globalMargin}
+          onGlobalMarginChange={setGlobalMargin}
           capacity={inputs.capacity}
         />
       </div>

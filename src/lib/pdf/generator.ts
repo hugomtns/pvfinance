@@ -292,6 +292,9 @@ export class PDFReportGenerator {
   private addCostBreakdown(costBreakdown: any): void {
     this.addSectionHeader('Cost Breakdown');
 
+    // Calculate global margin from cost breakdown if available
+    const globalMargin = costBreakdown.global_margin || 0;
+
     // CapEx items
     if (costBreakdown.items.filter((item: any) => item.is_capex).length > 0) {
       this.doc.setFontSize(12);
@@ -299,49 +302,88 @@ export class PDFReportGenerator {
       this.doc.text('CapEx Items', 14, this.currentY);
       this.currentY += 8;
 
+      let totalBeforeMargin = 0;
+      let totalWithMargin = 0;
+
       const capexItems = costBreakdown.items
         .filter((item: any) => item.is_capex)
         .map((item: any) => {
+          const subtotal = item.amount; // unit_price × quantity
+          const marginPercent = item.margin_percent ?? globalMargin;
+          const total = subtotal * (1 + marginPercent / 100);
+
+          totalBeforeMargin += subtotal;
+          totalWithMargin += total;
+
           if (item.unit_price && item.quantity) {
             return [
               item.name,
               formatCurrency(item.unit_price),
               formatNumber(item.quantity, 0),
-              formatCurrency(item.amount)
+              item.unit || '—',
+              formatCurrency(subtotal),
+              `${formatNumber(marginPercent, 1)}%`,
+              formatCurrency(total)
             ];
           } else {
             return [
               item.name,
               '—',
               '—',
-              formatCurrency(item.amount)
+              item.unit || '—',
+              formatCurrency(subtotal),
+              `${formatNumber(marginPercent, 1)}%`,
+              formatCurrency(total)
             ];
           }
         });
 
       autoTable(this.doc, {
         startY: this.currentY,
-        head: [['Item', 'Unit Price', 'Quantity', 'Total']],
+        head: [['Item', 'Price/Item', 'Qty', 'Unit', 'Subtotal', 'Margin%', 'Total']],
         body: capexItems,
         theme: 'grid',
         styles: {
-          fontSize: 9,
-          cellPadding: 3
+          fontSize: 8,
+          cellPadding: 2
         },
         headStyles: {
           fillColor: COLORS.GRAY_LIGHT,
           textColor: COLORS.GRAY_DARK,
-          fontStyle: 'bold'
+          fontStyle: 'bold',
+          fontSize: 8
+        },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 22, halign: 'right' },
+          2: { cellWidth: 18, halign: 'right' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 24, halign: 'right' },
+          5: { cellWidth: 18, halign: 'right' },
+          6: { cellWidth: 24, halign: 'right', fontStyle: 'bold' }
         }
       });
 
       this.currentY = (this.doc as any).lastAutoTable.finalY + 5;
 
-      // Total CapEx
-      this.doc.setFontSize(11);
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.text(`Total CapEx: ${formatCurrency(costBreakdown.total_capex)}`, 14, this.currentY);
+      // Total CapEx (before and after margin)
+      this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'normal');
+      this.doc.text(`Total CapEx (before margin): ${formatCurrency(totalBeforeMargin)}`, 14, this.currentY);
+      this.currentY += 5;
+
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.text(`Total CapEx (with margin): ${formatCurrency(totalWithMargin)}`, 14, this.currentY);
+      this.doc.setFont('helvetica', 'normal');
+      this.currentY += 5;
+
+      const effectiveMargin = totalBeforeMargin > 0
+        ? ((totalWithMargin - totalBeforeMargin) / totalBeforeMargin) * 100
+        : 0;
+      this.doc.setFontSize(9);
+      this.doc.setTextColor(128, 128, 128);
+      this.doc.text(`Effective Margin: ${formatNumber(effectiveMargin, 2)}%`, 14, this.currentY);
+      this.doc.setTextColor(...COLORS.GRAY_DARK);
       this.currentY += 10;
     }
 
@@ -356,12 +398,13 @@ export class PDFReportGenerator {
         .filter((item: any) => !item.is_capex)
         .map((item: any) => [
           item.name,
+          item.unit || '—',
           formatCurrency(item.amount)
         ]);
 
       autoTable(this.doc, {
         startY: this.currentY,
-        head: [['Item', 'Annual Cost']],
+        head: [['Item', 'Unit', 'Annual Cost']],
         body: opexItems,
         theme: 'grid',
         styles: {
@@ -372,6 +415,11 @@ export class PDFReportGenerator {
           fillColor: COLORS.GRAY_LIGHT,
           textColor: COLORS.GRAY_DARK,
           fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 100 },
+          1: { cellWidth: 30, halign: 'center' },
+          2: { cellWidth: 46, halign: 'right' }
         }
       });
 
