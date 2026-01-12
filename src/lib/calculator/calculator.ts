@@ -460,7 +460,8 @@ export class SolarFinanceCalculator {
     const dscr: (number | null)[] = [];
     const cumulativeFCFToEquity: number[] = [];
 
-    let cumulativeFCF = 0;
+    const equity = this.calcEquity();
+    let cumulativeFCF = -equity;
 
     for (let year = 1; year <= this.inputs.project_lifetime; year++) {
       energyProductionMwh.push(this.calcEnergyYearT(year));
