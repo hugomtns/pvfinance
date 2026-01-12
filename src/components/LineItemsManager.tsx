@@ -420,32 +420,33 @@ export function LineItemsManager({
                       <div className="category-content">
                         {categoryItems.length > 0 && (
                           <>
-                            <div className="line-item-header" style={{ gridTemplateColumns: isCapexTab ? '2.5fr 0.8fr 1fr 0.7fr 1fr 0.8fr 1fr auto' : '3fr 1fr 1.5fr auto' }}>
+                            <div className="line-item-header" style={{ gridTemplateColumns: isCapexTab ? '2.5fr 1fr 0.7fr 0.8fr 1fr 0.8fr 1fr auto' : '3fr 1fr 1.5fr auto' }}>
                               <div>Item Name</div>
-                              <div>Unit</div>
                               {isCapexTab ? (
                                 <>
                                   <div>Price/Item (€)</div>
                                   <div>Qty</div>
+                                  <div>Unit</div>
                                   <div>Subtotal (€)</div>
                                   <div>Margin %</div>
                                   <div>Total (€)</div>
                                 </>
                               ) : (
                                 <>
+                                  <div>Unit</div>
                                   <div>Amount (€)</div>
                                 </>
                               )}
                               <div>Action</div>
                             </div>
                             {categoryItems.map((item, index) => (
-                              <div key={index} className="line-item" style={{ gridTemplateColumns: isCapexTab ? '2.5fr 0.8fr 1fr 0.7fr 1fr 0.8fr 1fr auto' : '3fr 1fr 1.5fr auto' }}>
+                              <div key={index} className="line-item" style={{ gridTemplateColumns: isCapexTab ? '2.5fr 1fr 0.7fr 0.8fr 1fr 0.8fr 1fr auto' : '3fr 1fr 1.5fr auto' }}>
                                 <div className="line-item-name">{item.name}</div>
-                                <div className="line-item-unit">{item.unit || '-'}</div>
                                 {isCapexTab ? (
                                   <>
                                     <div className="line-item-amount">{formatCurrency(item.unit_price || 0)}</div>
                                     <div className="line-item-amount">{item.quantity || 0}</div>
+                                    <div className="line-item-unit">{item.unit || '-'}</div>
                                     <div className="line-item-amount">{formatCurrency(item.amount)}</div>
                                     <div className="line-item-margin">
                                       <input
@@ -475,6 +476,7 @@ export function LineItemsManager({
                                   </>
                                 ) : (
                                   <>
+                                    <div className="line-item-unit">{item.unit || '-'}</div>
                                     <div className="line-item-amount">{formatCurrency(item.amount)}</div>
                                   </>
                                 )}
