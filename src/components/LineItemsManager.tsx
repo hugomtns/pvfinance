@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { CostLineItem } from '../types';
-import { CapexAutocomplete } from './CapexAutocomplete';
-import { OpexAutocomplete } from './OpexAutocomplete';
+import { AddItemModal } from './AddItemModal';
 import { generateCapexItems, generateOpexItems } from '../utils/designGenerator';
 import { getCapexItemCategory, getOpexItemCategory } from '../utils/categoryHelpers';
 import '../styles/LineItems.css';
@@ -30,19 +29,18 @@ export function LineItemsManager({
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // Per-category add item forms
-  const [addingToCategory, setAddingToCategory] = useState<string | null>(null);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemAmount, setNewItemAmount] = useState('');
-  const [newItemQuantity, setNewItemQuantity] = useState('');
+  // Separate state for custom categories (persists even when empty)
+  const [customCapexCategories, setCustomCapexCategories] = useState<string[]>([]);
+  const [customOpexCategories, setCustomOpexCategories] = useState<string[]>([]);
+
+  // Modal state for adding items
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalCategory, setModalCategory] = useState<string>('');
 
   const handleTabChange = (tab: 'capex' | 'opex') => {
     setActiveTab(tab);
-    // Clear form fields when switching tabs
-    setNewItemName('');
-    setNewItemAmount('');
-    setNewItemQuantity('');
-    setAddingToCategory(null);
+    // Close modal and forms when switching tabs
+    setIsModalOpen(false);
     setShowAddCategoryForm(false);
   };
 
@@ -56,8 +54,11 @@ export function LineItemsManager({
     category: item.category || 'Uncategorized',
   }));
 
-  // Extract unique categories from items
-  const categories = Array.from(new Set(migratedItems.map(item => item.category)));
+  // Extract unique categories from items and merge with custom categories
+  const itemCategories = Array.from(new Set(migratedItems.map(item => item.category)));
+  const customCategories = isCapexTab ? customCapexCategories : customOpexCategories;
+  const allCategories = Array.from(new Set([...itemCategories, ...customCategories]));
+  const categories = allCategories;
 
   // Get items for a specific category
   const getCategoryItems = (category: string): CostLineItem[] => {
@@ -80,10 +81,18 @@ export function LineItemsManager({
       return;
     }
 
-    // Just close the form - category will be created when first item is added
+    // Add category to custom categories state
+    if (isCapexTab) {
+      setCustomCapexCategories([...customCapexCategories, trimmedName]);
+    } else {
+      setCustomOpexCategories([...customOpexCategories, trimmedName]);
+    }
+
+    // Open modal to add first item to new category
     setNewCategoryName('');
     setShowAddCategoryForm(false);
-    setAddingToCategory(trimmedName);
+    setModalCategory(trimmedName);
+    setIsModalOpen(true);
   };
 
   const handleDeleteCategory = (category: string) => {
@@ -92,7 +101,13 @@ export function LineItemsManager({
       alert(`Cannot delete category "${category}" because it contains ${itemsInCategory.length} item(s)`);
       return;
     }
-    // Category will be removed automatically when it has no items
+
+    // Remove category from custom categories state
+    if (isCapexTab) {
+      setCustomCapexCategories(customCapexCategories.filter(cat => cat !== category));
+    } else {
+      setCustomOpexCategories(customOpexCategories.filter(cat => cat !== category));
+    }
   };
 
   const handleToggleCategory = (category: string) => {
@@ -105,65 +120,36 @@ export function LineItemsManager({
     setCollapsedCategories(newCollapsed);
   };
 
-  const handleAddItem = (category: string) => {
-    if (!newItemName.trim()) {
-      return;
-    }
-
+  const handleAddItem = (newItem: CostLineItem) => {
     // Auto-detect category from item name if it's a predefined item
     const detectedCategory = isCapexTab
-      ? getCapexItemCategory(newItemName.trim())
-      : getOpexItemCategory(newItemName.trim());
+      ? getCapexItemCategory(newItem.name)
+      : getOpexItemCategory(newItem.name);
 
     // Use detected category if found, otherwise use the provided category
-    const finalCategory = detectedCategory !== "Uncategorized" ? detectedCategory : category;
+    const finalCategory = detectedCategory !== "Uncategorized" ? detectedCategory : newItem.category;
 
-    let newItem: CostLineItem;
+    setCurrentItems([...currentItems, { ...newItem, category: finalCategory }]);
+  };
 
-    if (isCapexTab) {
-      // CapEx: Calculate amount from unit_price × quantity
-      const unitPrice = parseFloat(newItemAmount);
-      const quantity = parseFloat(newItemQuantity);
-
-      if (isNaN(unitPrice) || unitPrice <= 0 || isNaN(quantity) || quantity <= 0) {
-        return;
-      }
-
-      newItem = {
-        name: newItemName.trim(),
-        amount: unitPrice * quantity,
-        is_capex: true,
-        category: finalCategory,
-        unit_price: unitPrice,
-        quantity: quantity,
-      };
-    } else {
-      // OpEx: Use amount directly
-      const amount = parseFloat(newItemAmount);
-
-      if (isNaN(amount) || amount <= 0) {
-        return;
-      }
-
-      newItem = {
-        name: newItemName.trim(),
-        amount,
-        is_capex: false,
-        category: finalCategory,
-      };
-    }
-
-    setCurrentItems([...currentItems, newItem]);
-
-    // Reset form
-    setNewItemName('');
-    setNewItemAmount('');
-    setNewItemQuantity('');
-    setAddingToCategory(null);
+  const handleOpenAddModal = (category: string) => {
+    setModalCategory(category);
+    setIsModalOpen(true);
   };
 
   const handleDeleteItem = (itemToDelete: CostLineItem) => {
-    const updatedItems = currentItems.filter(item => item !== itemToDelete);
+    // Use property-based comparison instead of reference equality
+    const updatedItems = currentItems.filter(item => {
+      // Compare all relevant properties to identify the item
+      const isSameName = item.name === itemToDelete.name;
+      const isSameAmount = item.amount === itemToDelete.amount;
+      const isSameCategory = (item.category || 'Uncategorized') === (itemToDelete.category || 'Uncategorized');
+      const isSameUnitPrice = (item.unit_price || 0) === (itemToDelete.unit_price || 0);
+      const isSameQuantity = (item.quantity || 0) === (itemToDelete.quantity || 0);
+
+      // Item matches if all properties match
+      return !(isSameName && isSameAmount && isSameCategory && isSameUnitPrice && isSameQuantity);
+    });
     setCurrentItems(updatedItems);
   };
 
@@ -177,11 +163,8 @@ export function LineItemsManager({
       onOpexItemsChange(generatedItems);
     }
 
-    // Clear form fields and expand all categories
-    setNewItemName('');
-    setNewItemAmount('');
-    setNewItemQuantity('');
-    setAddingToCategory(null);
+    // Close modal and expand all categories
+    setIsModalOpen(false);
     setCollapsedCategories(new Set());
   };
 
@@ -404,117 +387,14 @@ export function LineItemsManager({
                           </>
                         )}
 
-                        {/* Add Item Form for this category */}
-                        {addingToCategory === category ? (
-                          <div className="category-add-item-form">
-                            <div className="line-item-header" style={{ borderBottom: '1px solid var(--color-border)', gridTemplateColumns: isCapexTab ? '4fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto', marginTop: '1rem' }}>
-                              <div>Item Name</div>
-                              {isCapexTab ? (
-                                <>
-                                  <div>Price/Item (€)</div>
-                                  <div>Quantity</div>
-                                  <div>Total (€)</div>
-                                </>
-                              ) : (
-                                <>
-                                  <div>Amount (€)</div>
-                                </>
-                              )}
-                              <div>Action</div>
-                            </div>
-
-                            <div className="line-items-add-form" style={{ gridTemplateColumns: isCapexTab ? '4fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto', marginTop: '0.5rem' }}>
-                              {isCapexTab ? (
-                                <CapexAutocomplete
-                                  value={newItemName}
-                                  onChange={setNewItemName}
-                                  placeholder="Type to search or enter custom name"
-                                  onKeyPress={(e) => e.key === 'Enter' && handleAddItem(category)}
-                                />
-                              ) : (
-                                <OpexAutocomplete
-                                  value={newItemName}
-                                  onChange={setNewItemName}
-                                  placeholder="Type to search or enter custom name"
-                                  onKeyPress={(e) => e.key === 'Enter' && handleAddItem(category)}
-                                />
-                              )}
-                              <input
-                                type="number"
-                                placeholder={isCapexTab ? 'Price per item' : 'Total amount'}
-                                value={newItemAmount}
-                                onChange={(e) => setNewItemAmount(e.target.value)}
-                                min="0"
-                                step={isCapexTab ? '100' : '1000'}
-                                onKeyPress={(e) => e.key === 'Enter' && handleAddItem(category)}
-                              />
-                              {isCapexTab && (
-                                <>
-                                  <input
-                                    type="number"
-                                    placeholder="Qty"
-                                    value={newItemQuantity}
-                                    onChange={(e) => setNewItemQuantity(e.target.value)}
-                                    min="0"
-                                    step="1"
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddItem(category)}
-                                  />
-                                  <div style={{
-                                    padding: '0.5rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'flex-end',
-                                    fontWeight: 600,
-                                    color: 'var(--color-primary)'
-                                  }}>
-                                    {newItemAmount && newItemQuantity ?
-                                      formatCurrency(parseFloat(newItemAmount) * parseFloat(newItemQuantity)) :
-                                      '€0'
-                                    }
-                                  </div>
-                                </>
-                              )}
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button
-                                  type="button"
-                                  className="line-items-add-button"
-                                  onClick={() => handleAddItem(category)}
-                                  disabled={!newItemName.trim() || !newItemAmount || (isCapexTab && !newItemQuantity)}
-                                >
-                                  Add
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setAddingToCategory(null);
-                                    setNewItemName('');
-                                    setNewItemAmount('');
-                                    setNewItemQuantity('');
-                                  }}
-                                  style={{
-                                    padding: '0.5rem 1rem',
-                                    backgroundColor: '#e5e7eb',
-                                    color: '#374151',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontSize: '0.875rem'
-                                  }}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="add-item-to-category-btn"
-                            onClick={() => setAddingToCategory(category)}
-                          >
-                            + Add Item to {category}
-                          </button>
-                        )}
+                        {/* Add Item Button */}
+                        <button
+                          type="button"
+                          className="add-item-to-category-btn"
+                          onClick={() => handleOpenAddModal(category)}
+                        >
+                          + Add Item to {category}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -541,6 +421,15 @@ export function LineItemsManager({
               Note: OpEx escalation rate is set in Economic Parameters and applied to all OpEx items.
             </div>
           )}
+
+          {/* Add Item Modal */}
+          <AddItemModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onAdd={handleAddItem}
+            category={modalCategory}
+            isCapex={isCapexTab}
+          />
         </div>
       )}
     </div>
