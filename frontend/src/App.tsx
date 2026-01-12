@@ -1,27 +1,54 @@
 import { useState } from 'react';
 import { InputForm } from './components/InputForm';
 import { Results } from './components/Results';
-import { api } from './services/api';
+import { SolarFinanceCalculator } from './lib/calculator';
 import type { ProjectInputs, ProjectResults } from './types';
 import './styles/App.css';
 
 function App() {
   const [results, setResults] = useState<ProjectResults | null>(null);
+  const [inputs, setInputs] = useState<ProjectInputs | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleCalculate = async (inputs: ProjectInputs) => {
     setIsLoading(true);
     setError(null);
+    setInputs(inputs); // Store inputs for later use
 
     try {
-      const calculatedResults = await api.calculateProject(inputs);
+      // Run calculation in browser (no API call)
+      const calculator = new SolarFinanceCalculator(inputs);
+
+      // Generate all results
+      const summary = calculator.generateSummaryReport();
+      const yearlyData = calculator.generateYearlyData();
+      const auditLog = calculator.generateAuditLog();
+
+      // Build cost breakdown if cost_items provided
+      const costItemsBreakdown = inputs.cost_items ? {
+        items: inputs.cost_items,
+        total_capex: inputs.cost_items
+          .filter(item => item.is_capex)
+          .reduce((sum, item) => sum + item.amount, 0),
+        total_opex_year_1: inputs.cost_items
+          .filter(item => !item.is_capex)
+          .reduce((sum, item) => sum + item.amount, 0)
+      } : undefined;
+
+      const calculatedResults: ProjectResults = {
+        ...summary,
+        yearly_data: yearlyData,
+        cost_items_breakdown: costItemsBreakdown,
+        audit_log: auditLog
+      };
+
       setResults(calculatedResults);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown error occurred');
+        setError('An unknown error occurred during calculation');
       }
       console.error('Calculation error:', err);
     } finally {
@@ -42,9 +69,6 @@ function App() {
             <div style={{ flex: 1 }}>
               <h3>Error</h3>
               <p>{error}</p>
-              <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                Make sure the backend server is running on port 8000.
-              </p>
             </div>
             <button
               onClick={() => setError(null)}
@@ -67,7 +91,7 @@ function App() {
 
       <InputForm onSubmit={handleCalculate} isLoading={isLoading} />
 
-      {results && <Results results={results} />}
+      {results && inputs && <Results results={results} inputs={inputs} />}
     </div>
   );
 }
