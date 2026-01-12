@@ -3,9 +3,12 @@ export interface CostLineItem {
   name: string;
   amount: number;  // For OpEx: total amount. For CapEx: calculated from unit_price × quantity
   is_capex: boolean;
+  category: string;  // Category grouping for UI organization
   // CapEx-specific fields
   unit_price?: number;  // Price per item (CapEx only)
   quantity?: number;    // Number of items (CapEx only)
+  unit?: string;        // Display unit (e.g., "MW", "panels", "meters")
+  margin_percent?: number;  // CapEx-only: margin override (uses global if undefined)
 }
 
 // Project input types

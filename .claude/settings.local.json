@@ -38,7 +38,8 @@
       "Bash(for item in frontend/*)",
       "Bash(do git mv \"$item\" .)",
       "Bash(done)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(ls -la \"C:\\\\Users\\\\hmmar\\\\GitHub\\\\pvfinance\\\\frontend\\\\src\\\\components\"\" 2>&1 || echo \"Directory not found \")"
     ],
     "deny": [],
     "ask": []

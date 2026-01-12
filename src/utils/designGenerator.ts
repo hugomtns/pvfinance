@@ -1,6 +1,7 @@
 import type { CostLineItem } from '../types';
 import { ALL_CAPEX_FIELDS } from '../data/capexFields';
 import { ALL_OPEX_FIELDS } from '../data/opexFields';
+import { getCapexItemCategory, getOpexItemCategory } from './categoryHelpers';
 
 /**
  * Design Generator for PV Finance
@@ -85,6 +86,7 @@ const createCapexItem = (
   unit_price: round(unitPrice),
   amount: round(quantity * unitPrice),
   is_capex: true,
+  category: getCapexItemCategory(name),
 });
 
 /**
@@ -94,6 +96,7 @@ const createOpexItem = (name: string, amount: number): CostLineItem => ({
   name,
   amount: round(amount),
   is_capex: false,
+  category: getOpexItemCategory(name),
 });
 
 /**
