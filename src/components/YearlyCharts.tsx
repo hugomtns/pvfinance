@@ -177,45 +177,7 @@ export function YearlyCharts({ data, monthlyData, mode = 'yearly', equityPayback
         </p>
       </div>
 
-      {/* Chart 2: Waterfall - Cash Flow Breakdown */}
-      <div className="chart-section" id="cash-flow-waterfall-chart">
-        <h4>{useMonthlyView ? 'Monthly' : 'Annual'} Cash Flow Waterfall</h4>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={enrichedChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis
-              dataKey="period"
-              label={{ value: useMonthlyView ? 'Month' : 'Year', position: 'insideBottom', offset: -5 }}
-              stroke="#6b7280"
-              interval={useMonthlyView ? 'preserveStartEnd' : 0}
-              angle={useMonthlyView ? -45 : 0}
-              textAnchor={useMonthlyView ? 'end' : 'middle'}
-              height={useMonthlyView ? 80 : 30}
-            />
-            <YAxis
-              label={{ value: 'Cash Flow (€)', angle: -90, position: 'insideLeft' }}
-              tickFormatter={formatCurrency}
-              stroke="#6b7280"
-            />
-            <Tooltip
-              formatter={(value: number) => formatCurrency(Math.abs(value))}
-              contentStyle={{ backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px' }}
-            />
-            <Legend />
-            <ReferenceLine y={0} stroke="#000" />
-            <Bar dataKey="revenue" stackId="a" fill="#10b981" name="Revenue" />
-            <Bar dataKey="omCosts" stackId="a" fill="#ef4444" name="O&M Costs" />
-            <Bar dataKey="taxes" stackId="a" fill="#f59e0b" name="Taxes" />
-            <Bar dataKey="debtService" stackId="a" fill="#8b5cf6" name="Debt Service" />
-            <Bar dataKey="fcfToEquity" stackId="b" fill="#3b82f6" name="FCF to Equity" />
-          </BarChart>
-        </ResponsiveContainer>
-        <p className="chart-caption">
-          Breakdown of annual cash flows showing revenue inflows and cost/debt outflows, with net FCF to equity.
-        </p>
-      </div>
-
-      {/* Chart 3: Cumulative Cash Flow */}
+      {/* Chart 2: Cumulative Cash Flow */}
       <div className="chart-section" id={useMonthlyView ? 'monthly-fcf-chart' : 'yearly-fcf-chart'}>
         <h4>Cumulative Free Cash Flow to Equity</h4>
         <ResponsiveContainer width="100%" height={350}>
