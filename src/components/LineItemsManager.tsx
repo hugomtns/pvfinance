@@ -158,7 +158,7 @@ export function LineItemsManager({
           <div className="line-items-list">
             {currentItems.length > 0 ? (
               <>
-                <div className="line-item-header">
+                <div className="line-item-header" style={{ gridTemplateColumns: isCapexTab ? '4fr 1.2fr 0.8fr 1.2fr auto' : '2fr 1.5fr auto' }}>
                   <div>Item Name</div>
                   {isCapexTab ? (
                     <>
