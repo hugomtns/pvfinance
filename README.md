@@ -21,32 +21,29 @@ This application provides detailed financial analysis for solar projects, includ
 The application is built with:
 
 - **Frontend**: React + TypeScript + Vite
-- **Backend**: Python + FastAPI
-- **Testing**: Vitest (frontend) + pytest (backend)
+- **Calculations**: Pure TypeScript (runs in browser)
+- **PDF Generation**: jsPDF (browser-based)
+- **Testing**: Vitest
 
 ```
 pvfinance/
 ├── frontend/          # React + TypeScript frontend
 │   ├── src/
 │   │   ├── components/  # React components
-│   │   ├── services/    # API client
+│   │   ├── lib/         # Calculator & PDF modules
 │   │   ├── styles/      # CSS files
 │   │   └── types/       # TypeScript types
 │   └── package.json
-├── backend/           # Python FastAPI backend
-│   ├── main.py          # FastAPI app
-│   ├── calculator.py    # Financial calculator
-│   ├── test_*.py        # Tests
-│   └── requirements.txt
 └── README.md
 ```
+
+**Note:** This is a 100% frontend application. All calculations run in your browser - no backend server needed!
 
 ## Quick Start
 
 ### Prerequisites
 
 - **Node.js** 18+ and npm
-- **Python** 3.9+
 - **Git**
 
 ### Installation
@@ -57,51 +54,22 @@ pvfinance/
    cd pvfinance
    ```
 
-2. **Set up the backend**:
+2. **Install dependencies**:
    ```bash
-   cd backend
-   python -m venv venv
-
-   # Windows
-   venv\Scripts\activate
-
-   # macOS/Linux
-   source venv/bin/activate
-
-   pip install -r requirements.txt
-   ```
-
-3. **Set up the frontend**:
-   ```bash
-   cd ../frontend
+   cd frontend
    npm install
    ```
 
 ### Running the Application
 
-You'll need **two terminal windows** running simultaneously:
-
-#### Terminal 1: Backend Server
-
-```bash
-cd backend
-# Activate virtual environment (if not already activated)
-python main.py
-```
-
-The backend API will be available at http://localhost:8000
-
-- API Documentation: http://localhost:8000/docs
-- Health Check: http://localhost:8000/health
-
-#### Terminal 2: Frontend Dev Server
+Simply start the dev server:
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-The frontend will be available at http://localhost:5173
+The application will be available at http://localhost:5173
 
 Open your browser and navigate to http://localhost:5173 to use the application.
 
@@ -145,20 +113,6 @@ Open your browser and navigate to http://localhost:5173 to use the application.
 
 ## Testing
 
-### Backend Tests
-
-```bash
-cd backend
-pytest
-```
-
-Run with coverage:
-```bash
-pytest --cov=. --cov-report=html
-```
-
-### Frontend Tests
-
 ```bash
 cd frontend
 npm test
@@ -169,88 +123,46 @@ Run with UI:
 npm run test:ui
 ```
 
-## API Documentation
-
-Once the backend is running, visit:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-### Main Endpoints
-
-- `GET /health` - Health check
-- `GET /defaults` - Get default parameter values
-- `POST /calculate` - Calculate project financials
-- `POST /export-pdf` - Export results as PDF report
-
-Example request to `/calculate`:
-
-```json
-{
-  "capacity": 50,
-  "capacity_factor": 0.22,
-  "capex_per_mw": 1000000,
-  "ppa_price": 70,
-  "om_cost_per_mw_year": 15000,
-  "degradation_rate": 0.004,
-  "ppa_escalation": 0.01,
-  "om_escalation": 0.01,
-  "gearing_ratio": 0.75,
-  "interest_rate": 0.045,
-  "debt_tenor": 15,
-  "target_dscr": 1.30,
-  "project_lifetime": 25,
-  "tax_rate": 0.25,
-  "discount_rate": 0.08
-}
+Run with coverage:
+```bash
+npm run test:coverage
 ```
 
 ## Development
 
-### Frontend Development
-
-The frontend uses:
+The application uses:
 - **Vite** for fast development and building
 - **React 19** with TypeScript
 - **CSS** for styling (no Tailwind)
 - **Vitest** for testing
+- **jsPDF** for PDF generation
 
 Hot Module Replacement (HMR) is enabled by default when running `npm run dev`.
 
-### Backend Development
+### Project Structure
 
-The backend uses:
-- **FastAPI** for the REST API
-- **Pydantic** for data validation
-- **NumPy** for calculations
-- **pytest** for testing
+```
+frontend/src/
+├── lib/
+│   ├── calculator/      # Financial calculation engine
+│   │   ├── financial.ts # NPV, IRR, PMT, PV functions
+│   │   └── calculator.ts # Main calculator (23-step model)
+│   └── pdf/            # PDF generation
+│       ├── generator.ts # PDF layout and sections
+│       └── formatter.ts # Number/currency formatting
+├── components/         # React UI components
+├── types/             # TypeScript type definitions
+└── styles/            # CSS stylesheets
+```
 
-Auto-reload is enabled when running `python main.py` in development mode.
+### Building for Production
 
-### Adding New Features
+```bash
+cd frontend
+npm run build
+```
 
-1. Create a new branch: `git checkout -b feature/your-feature-name`
-2. Make your changes
-3. Run tests: `npm test` (frontend) and `pytest` (backend)
-4. Commit: `git commit -m "Add your feature"`
-5. Push: `git push origin feature/your-feature-name`
-6. Create a Pull Request
-
-## Project Structure
-
-### Frontend Components
-
-- `InputForm.tsx` - Form for entering project parameters
-- `LineItemsManager.tsx` - Component for managing cost line items
-- `Results.tsx` - Display of calculation results with PDF export
-- `useLocalStorage.ts` - Custom hook for browser storage
-
-### Backend Modules
-
-- `main.py` - FastAPI application and endpoints
-- `calculator.py` - Financial calculation engine
-- `pdf_generator.py` - PDF report generator
-- `test_api.py` - API endpoint tests
-- `test_calculator.py` - Calculator logic tests
+The production build will be in `frontend/dist/`
 
 ## Calculation Methodology
 
@@ -268,24 +180,23 @@ For detailed formulas, see `FORMULAS.md`.
 
 ## Troubleshooting
 
-### Backend won't start
+### Application won't start
 
-- Ensure Python 3.9+ is installed
-- Activate virtual environment
-- Install dependencies: `pip install -r requirements.txt`
-- Check port 8000 is not in use
-
-### Frontend shows connection error
-
-- Ensure backend is running on port 8000
-- Check browser console for errors
-- Verify API proxy configuration in `vite.config.ts`
+- Ensure Node.js 18+ is installed
+- Delete `node_modules` and run `npm install` again
+- Check port 5173 is not in use
 
 ### Tests failing
 
-- Ensure all dependencies are installed
-- Check Node.js and Python versions
-- Clear caches: `npm clean-install` or delete `node_modules`
+- Ensure all dependencies are installed: `npm install`
+- Clear caches: `rm -rf node_modules && npm install`
+- Check Node.js version: `node --version`
+
+### PDF export not working
+
+- Check browser console for errors
+- Ensure you're using a modern browser (Chrome, Firefox, Safari, Edge)
+- Try clearing browser cache
 
 ## Contributing
 

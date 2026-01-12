@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ProjectResults } from '../types';
 import { YearlyDataTable } from './YearlyDataTable';
 import { AuditLogView } from './AuditLogView';
+import { PDFReportGenerator } from '../lib/pdf';
 import '../styles/Results.css';
 
 interface ResultsProps {
@@ -57,23 +58,12 @@ export function Results({ results }: ResultsProps) {
     setExportError(null);
 
     try {
-      const response = await fetch('/api/export-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(results),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF');
-      }
-
-      // Get the PDF blob
-      const blob = await response.blob();
+      // Generate PDF in browser
+      const pdfGenerator = new PDFReportGenerator();
+      const pdfBlob = pdfGenerator.generateReport(results);
 
       // Create a download link
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `PV_Finance_Report_${new Date().toISOString().slice(0, 10)}.pdf`;

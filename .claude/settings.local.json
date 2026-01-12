@@ -24,7 +24,13 @@
       "Bash(dir:*)",
       "Bash(taskkill:*)",
       "Bash(tasklist:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx tsx:*)",
+      "Bash(del \"C:\\Users\\hmmar\\GitHub\\pvfinance\\frontend\\src\\utils\\designGenerator.test.ts\")",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
