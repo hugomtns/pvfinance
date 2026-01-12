@@ -37,6 +37,9 @@ export function LineItemsManager({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalCategory, setModalCategory] = useState<string>('');
 
+  // Global margin state (CAPEX only)
+  const [globalMargin, setGlobalMargin] = useState<number>(0);
+
   const handleTabChange = (tab: 'capex' | 'opex') => {
     setActiveTab(tab);
     // Close modal and forms when switching tabs
@@ -65,7 +68,26 @@ export function LineItemsManager({
     return migratedItems.filter(item => item.category === category);
   };
 
-  const totalCapex = capexItems.reduce((sum, item) => sum + item.amount, 0);
+  // Calculate item total with margin (CAPEX only)
+  const calculateItemTotal = (item: CostLineItem): number => {
+    const subtotal = item.amount; // Already calculated as unit_price × quantity
+    if (!item.is_capex) return subtotal;
+
+    const marginPercent = item.margin_percent ?? globalMargin;
+    return subtotal * (1 + marginPercent / 100);
+  };
+
+  // Calculate CAPEX totals (before and after margin)
+  const calculateCapexTotals = () => {
+    const beforeMargin = capexItems.reduce((sum, item) => sum + item.amount, 0);
+    const withMargin = capexItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+    const effectiveMargin = beforeMargin > 0 ? ((withMargin - beforeMargin) / beforeMargin) * 100 : 0;
+
+    return { beforeMargin, withMargin, effectiveMargin };
+  };
+
+  const capexTotals = calculateCapexTotals();
+  const totalCapex = capexTotals.withMargin; // Use total with margin for calculator
   const totalOpex = opexItems.reduce((sum, item) => sum + item.amount, 0);
 
   const handleAddCategory = () => {
@@ -153,6 +175,23 @@ export function LineItemsManager({
     setCurrentItems(updatedItems);
   };
 
+  const handleUpdateItemMargin = (itemToUpdate: CostLineItem, newMargin: number | undefined) => {
+    const updatedItems = currentItems.map(item => {
+      // Find matching item using property comparison
+      const isSameName = item.name === itemToUpdate.name;
+      const isSameAmount = item.amount === itemToUpdate.amount;
+      const isSameCategory = (item.category || 'Uncategorized') === (itemToUpdate.category || 'Uncategorized');
+      const isSameUnitPrice = (item.unit_price || 0) === (itemToUpdate.unit_price || 0);
+      const isSameQuantity = (item.quantity || 0) === (itemToUpdate.quantity || 0);
+
+      if (isSameName && isSameAmount && isSameCategory && isSameUnitPrice && isSameQuantity) {
+        return { ...item, margin_percent: newMargin };
+      }
+      return item;
+    });
+    setCurrentItems(updatedItems);
+  };
+
   const handleFillFromDesign = () => {
     // Generate items based on capacity
     if (isCapexTab) {
@@ -212,8 +251,44 @@ export function LineItemsManager({
             </button>
           </div>
 
+          {/* Global Margin Input (CAPEX only) */}
+          {isCapexTab && (
+            <div className="margin-controls" style={{
+              marginTop: 'var(--spacing-lg)',
+              padding: 'var(--spacing-md)',
+              backgroundColor: 'var(--color-bg-secondary)',
+              borderRadius: 'var(--border-radius)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-md)'
+            }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text)' }}>
+                Global Margin (%):
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={globalMargin}
+                onChange={(e) => setGlobalMargin(parseFloat(e.target.value) || 0)}
+                placeholder="0"
+                style={{
+                  width: '100px',
+                  padding: '0.5rem',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--border-radius)',
+                  fontSize: '0.875rem'
+                }}
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                Applied to all CAPEX items. Can be overridden per item.
+              </span>
+            </div>
+          )}
+
           <div style={{
-            marginTop: 'var(--spacing-lg)',
+            marginTop: 'var(--spacing-md)',
             marginBottom: 'var(--spacing-md)',
             display: 'flex',
             justifyContent: 'flex-end',
@@ -345,13 +420,15 @@ export function LineItemsManager({
                       <div className="category-content">
                         {categoryItems.length > 0 && (
                           <>
-                            <div className="line-item-header" style={{ gridTemplateColumns: isCapexTab ? '3fr 1fr 1.2fr 0.8fr 1.2fr auto' : '3fr 1fr 1.5fr auto' }}>
+                            <div className="line-item-header" style={{ gridTemplateColumns: isCapexTab ? '2.5fr 0.8fr 1fr 0.7fr 1fr 0.8fr 1fr auto' : '3fr 1fr 1.5fr auto' }}>
                               <div>Item Name</div>
                               <div>Unit</div>
                               {isCapexTab ? (
                                 <>
                                   <div>Price/Item (€)</div>
-                                  <div>Quantity</div>
+                                  <div>Qty</div>
+                                  <div>Subtotal (€)</div>
+                                  <div>Margin %</div>
                                   <div>Total (€)</div>
                                 </>
                               ) : (
@@ -362,14 +439,39 @@ export function LineItemsManager({
                               <div>Action</div>
                             </div>
                             {categoryItems.map((item, index) => (
-                              <div key={index} className="line-item" style={{ gridTemplateColumns: isCapexTab ? '3fr 1fr 1.2fr 0.8fr 1.2fr auto' : '3fr 1fr 1.5fr auto' }}>
+                              <div key={index} className="line-item" style={{ gridTemplateColumns: isCapexTab ? '2.5fr 0.8fr 1fr 0.7fr 1fr 0.8fr 1fr auto' : '3fr 1fr 1.5fr auto' }}>
                                 <div className="line-item-name">{item.name}</div>
                                 <div className="line-item-unit">{item.unit || '-'}</div>
                                 {isCapexTab ? (
                                   <>
                                     <div className="line-item-amount">{formatCurrency(item.unit_price || 0)}</div>
                                     <div className="line-item-amount">{item.quantity || 0}</div>
-                                    <div className="line-item-amount" style={{ fontWeight: 600 }}>{formatCurrency(item.amount)}</div>
+                                    <div className="line-item-amount">{formatCurrency(item.amount)}</div>
+                                    <div className="line-item-margin">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="0.1"
+                                        value={item.margin_percent ?? globalMargin}
+                                        onChange={(e) => {
+                                          const value = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                                          handleUpdateItemMargin(item, value);
+                                        }}
+                                        placeholder={`${globalMargin}%`}
+                                        className="margin-input"
+                                        style={{
+                                          width: '65px',
+                                          padding: '0.25rem',
+                                          border: '1px solid var(--color-border)',
+                                          borderRadius: '4px',
+                                          textAlign: 'right',
+                                          fontSize: '0.8125rem'
+                                        }}
+                                        title={item.margin_percent !== undefined ? "Custom margin (overrides global)" : "Using global margin"}
+                                      />
+                                    </div>
+                                    <div className="line-item-amount" style={{ fontWeight: 600 }}>{formatCurrency(calculateItemTotal(item))}</div>
                                   </>
                                 ) : (
                                   <>
@@ -409,19 +511,53 @@ export function LineItemsManager({
             )}
           </div>
 
-          <div className="line-items-total">
-            <span className="line-items-total-label">
-              Total {isCapexTab ? 'CapEx' : 'OpEx (Year 1)'}:
-            </span>
-            <span className="line-items-total-value">
-              {formatCurrency(isCapexTab ? totalCapex : totalOpex)}
-            </span>
-          </div>
-
-          {!isCapexTab && (
-            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-              Note: OpEx escalation rate is set in Economic Parameters and applied to all OpEx items.
+          {/* Totals Section */}
+          {isCapexTab ? (
+            <div className="capex-totals" style={{
+              marginTop: 'var(--spacing-lg)',
+              padding: 'var(--spacing-md)',
+              backgroundColor: 'var(--color-bg-secondary)',
+              borderRadius: 'var(--border-radius)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>
+                  Total CAPEX (before margin):
+                </span>
+                <strong style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>
+                  {formatCurrency(capexTotals.beforeMargin)}
+                </strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1rem', fontWeight: 600, color: '#059669' }}>
+                  Total CAPEX (with margin):
+                </span>
+                <strong style={{ fontSize: '1.125rem', fontWeight: 600, color: '#059669' }}>
+                  {formatCurrency(capexTotals.withMargin)}
+                </strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  Effective Margin:
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  {capexTotals.effectiveMargin.toFixed(2)}%
+                </span>
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="line-items-total">
+                <span className="line-items-total-label">
+                  Total OpEx (Year 1):
+                </span>
+                <span className="line-items-total-value">
+                  {formatCurrency(totalOpex)}
+                </span>
+              </div>
+              <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                Note: OpEx escalation rate is set in Economic Parameters and applied to all OpEx items.
+              </div>
+            </>
           )}
 
           {/* Add Item Modal */}
