@@ -1,35 +1,54 @@
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-dist/
-dist-ssr/
-*.local
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
 
+!.vscode/extensions.json
+# Build outputs
+# Editor directories and files
 # Environment
+# IDEs
+# Logs
+# Node
+# Temporary files
+# Test coverage
+*.local
+*.local
+*.log
+*.njsproj
+*.ntvs*
+*.sln
+*.suo
+*.sw?
+*.swo
+*.swp
+*.temp
+*.tmp
+*~
+.cache/
+.DS_Store
+.DS_Store
 .env
 .env.local
 .env.production
-
-# Test coverage
-coverage/
+.idea
+.idea/
 .nyc_output/
-
-# Build outputs
-frontend/dist/
+.pnpm-debug.log*
+.vscode/
+.vscode/*
+coverage/
+dist
+dist/
+dist-ssr
+dist-ssr/
 frontend/build/
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
+frontend/dist/
+lerna-debug.log*
+logs
+node_modules
+node_modules/
+npm-debug.log*
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn-error.log*

@@ -34,7 +34,11 @@
       "Bash(git restore:*)",
       "Bash(git fetch:*)",
       "Bash(git show:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(for item in frontend/*)",
+      "Bash(do git mv \"$item\" .)",
+      "Bash(done)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
