@@ -53,8 +53,14 @@ export class PDFReportGenerator {
 
   /**
    * Add chart section to PDF
+   * Returns true if chart was added, false if element not found
    */
-  private async addChartSection(title: string, elementId: string): Promise<void> {
+  private async addChartSection(title: string, elementId: string): Promise<boolean> {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      return false;
+    }
+
     this.addSectionHeader(title);
 
     const imgData = await this.captureChartAsImage(elementId);
@@ -63,6 +69,7 @@ export class PDFReportGenerator {
     // Image width = 182mm, height proportional
     this.doc.addImage(imgData, 'PNG', 14, this.currentY, 182, 100);
     this.currentY += 110;
+    return true;
   }
 
   /**
@@ -93,14 +100,14 @@ export class PDFReportGenerator {
       this.addCostBreakdown(results.cost_items_breakdown);
     }
 
-    // Add charts if requested
-    if (options.includeYearlyChart) {
+    // Add charts if requested and elements exist
+    if (options.includeYearlyChart && document.getElementById('yearly-fcf-chart')) {
       this.doc.addPage();
       this.currentY = 20;
       await this.addChartSection('Cumulative Cash Flow to Equity (Yearly)', 'yearly-fcf-chart');
     }
 
-    if (options.includeMonthlyChart) {
+    if (options.includeMonthlyChart && document.getElementById('monthly-fcf-chart')) {
       this.doc.addPage();
       this.currentY = 20;
       await this.addChartSection('Cumulative Cash Flow to Equity (Monthly)', 'monthly-fcf-chart');
